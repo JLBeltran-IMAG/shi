@@ -114,10 +114,7 @@ The SHI: Spatial Harmonic Imaging software can be provided on a USB stick. You c
 
 For installing the software, run on your terminal
 
-```
-=======
 ```bash
->>>>>>> a0b9abc (Updated README)
 ./install.sh
 ```
 

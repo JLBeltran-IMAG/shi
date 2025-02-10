@@ -1,5 +1,3 @@
-
-
 # SHI: A CLI-software for Spatial Harmonic X-ray Imaging
 
 **SHI: Spatial Harmonic Imaging** is a user-friendly software designed to facilitate Spatial Harmonic Imaging (SHI), a multi-contrast X-ray imaging modality. It produces high-resolution images in absorption, scattering, and differential phase modes within seconds per image. The software is intended for users who are new to the technique, including students and companies seeking effective data analysis tools.
@@ -86,16 +84,13 @@ To create an appropriate environment for Python and the necessary scientific lib
 
 ImageJ is a widely used image processing software that complements SHI functionalities.
 
-1. **Download ImageJ:**
+1. **Install ImageJ:**
    
-   - Visit the official [ImageJ download page](https://imagej.nih.gov/ij/download.html) and download the Linux version.
+   ```bash
+   sudo apt install imagej
+   ```
 
-2. **Install ImageJ:**
-   
-   - Extract the downloaded archive to a directory of your choice.
-   - Navigate to the ImageJ directory and execute the ImageJ program.
-
-3. **Verify Installation:**
+2. **Verify Installation:**
    
    - Launch ImageJ from the terminal to ensure it starts without issues.
 
@@ -107,7 +102,7 @@ The SHI: Spatial Harmonic Imaging software can be provided on a USB stick. You c
 
 For installing the software, run on your terminal
 
-```
+```bash
 ./install.sh
 ```
 

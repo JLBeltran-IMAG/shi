@@ -40,7 +40,7 @@ def extracting_coordinates_of_peaks(image):
 
     coordenates.append([index_of_main_maximun_height, index_of_main_maximun_width])
 
-    spatial_harmonic.making_zero_region_in_2darray_representing_fft_of_image(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
+    spatial_harmonic.zero_fft_region(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
 
     # plt.imshow(np.log(1 + np.abs(fourier_transform)), cmap = "gray")
     # plt.show()
@@ -50,7 +50,7 @@ def extracting_coordinates_of_peaks(image):
         top_limit, bottom_limit, left_limit, right_limit, index_of_harmonic_height, index_of_harmonic_width = spatial_harmonic.extracting_harmonic(copy_of_fourier_transform, ky_band_limit_of_harmonics, kx_band_limit_of_harmonics)
 
         coordenates.append([index_of_harmonic_height, index_of_harmonic_width])
-        spatial_harmonic.making_zero_region_in_2darray_representing_fft_of_image(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
+        spatial_harmonic.zero_fft_region(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
         # plt.imshow(np.log(1 + np.abs(copy_of_fourier_transform)), cmap = "gray")
         # plt.show()
 

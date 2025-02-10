@@ -5,10 +5,12 @@ from skimage.filters import sobel_h, sobel_v
 import pickle
 from pathlib import Path
 
-tmp_files = Path(__file__).resolve().parents[1].joinpath("tmp/")
+# Define the directory for temporary files using pathlib
+tmp_files = Path(__file__).resolve().parents[1] / "tmp"
+tmp_files.mkdir(parents=True, exist_ok=True)  # Crea la carpeta si no existe
 
 
-def squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_projected, logarithmic_spectrum = False):
+def squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_projected, logarithmic_spectrum=False):
     """
     Computes the squared Fast Fourier Transform (FFT) of an image and returns either the linear or logarithmic spectrum.
 
@@ -19,7 +21,7 @@ def squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_pro
     grid_period_projected : float
         The projected grid period used for computing the FFT frequencies.
     logarithmic_spectrum : bool, optional
-        If True, the function returns the logarithmic spectrum of the FFT. 
+        If True, the function returns the logarithmic spectrum of the FFT.
         If False, it returns the linear spectrum. Default is False.
 
     Returns
@@ -29,218 +31,419 @@ def squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_pro
     wavevector_ky : np.ndarray
         1D array of wavevector components in the y-direction.
     fourier_transform_of_image : np.ndarray
-        2D array of the FFT of the image. If `logarithmic_spectrum` is True, 
+        2D array of the FFT of the image. If `logarithmic_spectrum` is True,
         it returns the logarithm of the FFT amplitude.
-    
+
     Notes
     -----
-    This function performs the FFT shift to center the zero frequency component. 
+    This function performs the FFT shift to center the zero frequency component.
     The logarithmic spectrum is computed as `log10(1 + abs(FFT))` to prevent log(0).
-
-    Examples
-    --------
-    >>> image = np.random.rand(256, 256)
-    >>> grid_period_projected = 1.0
-    >>> wavevector_kx, wavevector_ky, fft_image = squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_projected)
-    >>> wavevector_kx_log, wavevector_ky_log, fft_image_log = squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_projected, True)
     """
+    # Image height and width
     image_height, image_width = image.shape
 
-    wavevector_kx = np.fft.fftfreq(image_width, d = 1 / grid_period_projected)
-    wavevector_ky = np.fft.fftfreq(image_height, d = 1 / grid_period_projected)
+    # Spatial frequencies (Fourier space) for limiting the selected harmonics later
+    wavevector_kx = np.fft.fftfreq(image_width, d=1 / grid_period_projected)
+    wavevector_ky = np.fft.fftfreq(image_height, d=1 / grid_period_projected)
 
+    # Calculate Fourier transform
     fourier_transform_of_image = np.fft.fftshift(np.fft.fft2(image.astype(np.float32)))
 
-    if not logarithmic_spectrum: return wavevector_kx, wavevector_ky, fourier_transform_of_image
-    else: return wavevector_kx, wavevector_ky, np.log10(1 + np.abs(fourier_transform_of_image))
+    # You have two options:
+    #  - Log spectrum for better visualizing of Image Fourier Space
+    if not logarithmic_spectrum:
+        return wavevector_kx, wavevector_ky, fourier_transform_of_image
 
-def making_zero_region_in_2darray_representing_fft_of_image(array2d, top_limit, botton_limit, left_limit, right_limit):
-    array2d[top_limit : botton_limit, left_limit : right_limit] = complex(0, 0)
+    #  - Linear spectrum for future calculations
+    else:
+        return wavevector_kx, wavevector_ky, np.log10(1 + np.abs(fourier_transform_of_image))
+
+
+def zero_fft_region(array2d, top, bottom, left, right):
+    """
+    Sets a specific rectangular region of a 2D complex array to zero.
+
+    This function is useful for filtering out certain frequency components
+    in the Fourier domain of an image.
+
+    Parameters:
+    -----------
+    array2d : np.ndarray
+        A 2D NumPy array representing the Fourier transform of an image.
+        It must be a complex-valued array.
+    top : int
+        The starting row index of the region to be zeroed.
+    bottom : int
+        The ending row index of the region to be zeroed (exclusive).
+    left : int
+        The starting column index of the region to be zeroed.
+    right : int
+        The ending column index of the region to be zeroed (exclusive).
+
+    Returns:
+    --------
+    np.ndarray
+        The modified 2D array with the specified region set to zero.
+    """
+    array2d[top:bottom, left:right] = np.complex128(0)
     return array2d
 
-def extracting_harmonic(fourier_transform, ky_band_limit_of_harmonics, kx_band_limit_of_harmonics):
-    next_index_of_maximun_height, next_index_of_maximun_width = np.unravel_index(np.argmax(np.abs(fourier_transform)), shape = fourier_transform.shape)
-    top_limit = next_index_of_maximun_height - ky_band_limit_of_harmonics
-    bottom_limit = next_index_of_maximun_height + ky_band_limit_of_harmonics
-    left_limit = next_index_of_maximun_width - kx_band_limit_of_harmonics
-    right_limit = next_index_of_maximun_width + kx_band_limit_of_harmonics
-    return top_limit, bottom_limit, left_limit, right_limit, next_index_of_maximun_height, next_index_of_maximun_width
 
-def identifying_harmonics_X1Y1_higher_orders(x, y):
-    if x > 0 and y > 0: return "harmonic_diagonal_p1_p1"
-    elif x < 0 and y > 0: return "harmonic_diagonal_n1_p1"
-    elif x < 0 and y < 0: return "harmonic_diagonal_n1_n1"
-    elif x > 0 and y < 0: return "harmonic_diagonal_p1_n1"
-    else: return "Something wrong"
+def extracting_harmonic(fourier_transform, ky_band_limit, kx_band_limit):
+    """
+    Extracts a rectangular region around the maximum harmonic component in a Fourier transform.
 
-def identifying_harmonic(main_harmonic_height, main_harmonic_width, harmonic_height, harmonic_width):
-    if abs(harmonic_height - main_harmonic_height) > abs(harmonic_width - main_harmonic_width):
-        deviation_angle_of_peak = np.angle(complex(np.abs(harmonic_height - main_harmonic_height), np.abs(harmonic_width - main_harmonic_width)), deg = True)
-        if deviation_angle_of_peak < 15:
-            if harmonic_height - main_harmonic_height > 0:
-                return "harmonic_vertical_positive"
-            else:
-                return "harmonic_vertical_negative"
-        else: return identifying_harmonics_X1Y1_higher_orders(harmonic_width - main_harmonic_width, harmonic_height - main_harmonic_height)
-    elif abs(harmonic_width - main_harmonic_width) > abs(harmonic_height - main_harmonic_height):
-        deviation_angle_of_peak = np.angle(complex(np.abs(harmonic_width - main_harmonic_width), np.abs(harmonic_height - main_harmonic_height)), deg = True)
-        if deviation_angle_of_peak < 15:
-            if harmonic_width - main_harmonic_width > 0:
-                return "harmonic_horizontal_positive"
-            else:
-                return "harmonic_horizontal_negative"
-        else: return identifying_harmonics_X1Y1_higher_orders(harmonic_width - main_harmonic_width, harmonic_height - main_harmonic_height)
-    else: return identifying_harmonics_X1Y1_higher_orders(harmonic_width - main_harmonic_width, harmonic_height - main_harmonic_height)
+    This function locates the point with the highest magnitude in the Fourier transform and
+    defines a rectangular region centered on that point, using the provided vertical and
+    horizontal band limits.
 
-def identifying_harmonic_angle(main_harmonic_height,main_harmonic_width, harmonic_height, harmonic_width, tolerance = 25):
-    deviation_angle_of_peak = np.angle(complex(harmonic_width - main_harmonic_width, harmonic_height - main_harmonic_height), deg = True)
-    if deviation_angle_of_peak < tolerance and deviation_angle_of_peak > -tolerance:
-        return "harmonic_horizontal_positive"
-    elif deviation_angle_of_peak < 180 + tolerance and deviation_angle_of_peak > 180 - tolerance:
-        return "harmonic_horizontal_negative"
-    elif deviation_angle_of_peak < 90 + tolerance and deviation_angle_of_peak > 90 - tolerance:
-        return "harmonic_vertical_positive"
-    elif deviation_angle_of_peak > -(90 + tolerance) and deviation_angle_of_peak < -(90 - tolerance):
-        return "harmonic_vertical_negative"
+    Parameters:
+    -----------
+    fourier_transform : np.ndarray
+        A 2D NumPy array representing the Fourier transform of an image (complex values).
+    ky_band_limit : int
+        The vertical band limit (number of rows) to extract around the maximum component.
+    kx_band_limit : int
+        The horizontal band limit (number of columns) to extract around the maximum component.
+
+    Returns:
+    --------
+    tuple
+        A tuple containing:
+            top_limit (int): The top boundary of the extracted region.
+            bottom_limit (int): The bottom boundary of the extracted region.
+            left_limit (int): The left boundary of the extracted region.
+            right_limit (int): The right boundary of the extracted region.
+            max_row_index (int): The row index of the maximum magnitude component.
+            max_col_index (int): The column index of the maximum magnitude component.
+    """
+    # Find the index of the maximum magnitude in the Fourier transform
+    max_row_index, max_col_index = np.unravel_index(np.argmax(np.abs(fourier_transform)), fourier_transform.shape)
+
+    # Calculate boundaries and ensure they stay within the array dimensions
+    top_limit = max(0, max_row_index - ky_band_limit)
+    bottom_limit = min(fourier_transform.shape[0], max_row_index + ky_band_limit)
+    left_limit = max(0, max_col_index - kx_band_limit)
+    right_limit = min(fourier_transform.shape[1], max_col_index + kx_band_limit)
+
+    return top_limit, bottom_limit, left_limit, right_limit, max_row_index, max_col_index
+
+
+def identifying_harmonics_x1y1_higher_orders(x, y):
+    """
+    Identifies the harmonic diagonal based on the signs of x and y.
+
+    Parameters:
+    -----------
+    x : numeric
+        The x-coordinate.
+    y : numeric
+        The y-coordinate.
+
+    Returns:
+    --------
+    str
+        A string representing the harmonic diagonal:
+          - "harmonic_diagonal_p1_p1" if x > 0 and y > 0.
+          - "harmonic_diagonal_n1_p1" if x < 0 and y > 0.
+          - "harmonic_diagonal_n1_n1" if x < 0 and y < 0.
+          - "harmonic_diagonal_p1_n1" if x > 0 and y < 0.
+
+    Raises:
+    -------
+    ValueError:
+        If either x or y is zero, as the harmonic diagonal is undefined in that case.
+    """
+    if x == 0 or y == 0:
+        raise ValueError("Invalid input: x and y must be non-zero to determine a harmonic diagonal.")
+
+    if x > 0 and y > 0:
+        return "harmonic_diagonal_p1_p1"
+    elif x < 0 and y > 0:
+        return "harmonic_diagonal_n1_p1"
+    elif x < 0 and y < 0:
+        return "harmonic_diagonal_n1_n1"
+    elif x > 0 and y < 0:
+        return "harmonic_diagonal_p1_n1"
+
+
+def identifying_harmonic(main_harmonic_height, main_harmonic_width, harmonic_height, harmonic_width, angle_threshold=15):
+    """
+    Identifies the type of harmonic based on its position relative to a main harmonic.
+
+    This function determines whether a harmonic peak is vertical, horizontal, or of a higher
+    order by comparing its position to a main harmonic's position and analyzing the deviation angle.
+    The angle_threshold parameter sets the threshold (in degrees) to determine if the deviation
+    is predominantly vertical or horizontal.
+
+    Parameters
+    ----------
+    main_harmonic_height : float
+        The y-coordinate of the main harmonic peak.
+    main_harmonic_width : float
+        The x-coordinate of the main harmonic peak.
+    harmonic_height : float
+        The y-coordinate of the harmonic peak being analyzed.
+    harmonic_width : float
+        The x-coordinate of the harmonic peak being analyzed.
+    angle_threshold : float, optional
+        The threshold angle (in degrees) used to decide if a harmonic is primarily vertical or horizontal.
+        Default is 15.
+
+    Returns
+    -------
+    str
+        The type of harmonic identified:
+          - "harmonic_vertical_positive": Vertical harmonic above the main peak.
+          - "harmonic_vertical_negative": Vertical harmonic below the main peak.
+          - "harmonic_horizontal_positive": Horizontal harmonic to the right of the main peak.
+          - "harmonic_horizontal_negative": Horizontal harmonic to the left of the main peak.
+          - In other cases, the result of identifying_harmonics_x1y1_higher_orders(dx, dy).
+
+    Notes
+    -----
+    If the deviation angle exceeds the angle_threshold, the function delegates the analysis to
+    identifying_harmonics_x1y1_higher_orders(), which is assumed to handle higher order cases.
+    """
+    # Calculate differences between the harmonic and the main harmonic coordinates.
+    dy = harmonic_height - main_harmonic_height
+    dx = harmonic_width - main_harmonic_width
+    abs_dy = abs(dy)
+    abs_dx = abs(dx)
+
+    # Case: Dominant vertical deviation.
+    if abs_dy > abs_dx:
+        # Calculate the deviation angle with respect to the vertical axis.
+        deviation_angle = np.angle(complex(abs_dy, abs_dx), deg=True)
+        if deviation_angle < angle_threshold:
+            return "harmonic_vertical_positive" if dy > 0 else "harmonic_vertical_negative"
+        else:
+            return identifying_harmonics_x1y1_higher_orders(dx, dy)
+    # Case: Dominant horizontal deviation.
+    elif abs_dx > abs_dy:
+        # Calculate the deviation angle with respect to the horizontal axis.
+        deviation_angle = np.angle(complex(abs_dx, abs_dy), deg=True)
+        if deviation_angle < angle_threshold:
+            return "harmonic_horizontal_positive" if dx > 0 else "harmonic_horizontal_negative"
+        else:
+            return identifying_harmonics_x1y1_higher_orders(dx, dy)
+    # Case: When vertical and horizontal deviations are equal.
     else:
-        return identifying_harmonics_X1Y1_higher_orders(harmonic_width - main_harmonic_width, harmonic_height - main_harmonic_height)
+        return identifying_harmonics_x1y1_higher_orders(dx, dy)
 
 
-def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wavevector_kx, flat, limit_band = 0.5,):
-    # copy of fourier transform to not change the original fourier transform
+def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wavevector_kx, flat, limit_band=0.5):
+    """
+    Extracts spatial harmonics from a Fourier transform and either saves (if flat=True)
+    or loads (if flat=False) the extraction limits to/from a pickle file.
+
+    Parameters
+    ----------
+    fourier_transform : np.ndarray
+        2D Fourier transform of an image.
+    wavevector_ky : np.ndarray
+        Array representing the y-component of the wavevector.
+    wavevector_kx : np.ndarray
+        Array representing the x-component of the wavevector.
+    flat : bool
+        If True, perform extraction and save the limits; if False, load the harmonic limits from file.
+    limit_band : float, optional
+        Band limit parameter to define the region for harmonics (default is 0.5).
+
+    Returns
+    -------
+    tuple
+        A tuple (harmonics, labels) where:
+            harmonics : list of np.ndarray
+                The extracted harmonic regions.
+            labels : list of str
+                The labels associated with each harmonic.
+    """
+    # Create a copy of the Fourier transform to avoid modifying the original.
     copy_of_fourier_transform = np.copy(fourier_transform)
 
     if flat:
-        # for selecting the maximun (is in the midle, logic) asign by code the maximun indexes
-        index_of_main_maximun_height, index_of_main_maximun_width = np.unravel_index(np.argmax(np.abs(fourier_transform)), shape = fourier_transform.shape)
+        # Identify the main maximum harmonic (assumed to be near the center)
+        max_index = np.argmax(np.abs(fourier_transform))
+        main_max_h, main_max_w = np.unravel_index(max_index, fourier_transform.shape)
 
-        # find the minimun indexes where harmonics of fourier space are limited by limited_band parameter, default = 0.5
-        ky_band_limit_of_harmonics = np.argmin(np.abs(wavevector_ky - limit_band))
-        kx_band_limit_of_harmonics = np.argmin(np.abs(wavevector_kx - limit_band))
+        # Determine band limits based on the wavevector arrays.
+        ky_band_limit = np.argmin(np.abs(wavevector_ky - limit_band))
+        kx_band_limit = np.argmin(np.abs(wavevector_kx - limit_band))
 
-        # create labels to each harmonic
-        harmonics = list()
-        labels = list()
+        harmonics = []
+        labels = []
+        export = {}
 
-        # create a list for [top_limit, bottom_limit, left_limit, right_limit] parameters to be read by images no flat
-        export = dict()
+        # Extract the 0-order harmonic.
+        top = main_max_h - ky_band_limit
+        bottom = main_max_h + ky_band_limit
+        left = main_max_w - kx_band_limit
+        right = main_max_w + kx_band_limit
 
-        # Extracting 0-order harmonic
-        top_limit = index_of_main_maximun_height - ky_band_limit_of_harmonics
-        bottom_limit = index_of_main_maximun_height + ky_band_limit_of_harmonics
-        left_limit = index_of_main_maximun_width - kx_band_limit_of_harmonics
-        right_limit = index_of_main_maximun_width + kx_band_limit_of_harmonics
+        harmonics.append(fourier_transform[top:bottom, left:right])
+        label = "harmonic_00"
+        labels.append(label)
+        export[label] = [top, bottom, left, right, main_max_h, main_max_w]
 
-        # adding harmonic and label
-        harmonics.append(fourier_transform[top_limit : bottom_limit, left_limit : right_limit])
+        # Zero out the extracted region in the copy to avoid re-detection.
+        zero_fft_region(copy_of_fourier_transform, top, bottom, left, right)
 
-        tmp_label = "harmonic_00"
-        labels.append(tmp_label)
-
-        # add the parameters [top_limit, bottom_limit, left_limit, right_limit] to export using pickle
-        tmp_harmonic = [top_limit, bottom_limit, left_limit, right_limit, index_of_main_maximun_height, index_of_main_maximun_width]
-        export[tmp_label] = tmp_harmonic
-
-        making_zero_region_in_2darray_representing_fft_of_image(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
-
-        # plt.imshow(np.log(1 + np.abs(copy_of_fourier_transform)), cmap = "gray")
-        # plt.show()
-
-        #Extracting higher-order harmonics (dafault 1-order)
-
+        # Extract higher-order harmonics (by default, 4 additional harmonics).
         for i in range(4):
-            top_limit, bottom_limit, left_limit, right_limit, index_of_harmonic_height, index_of_harmonic_width = extracting_harmonic(copy_of_fourier_transform, ky_band_limit_of_harmonics, kx_band_limit_of_harmonics)
+            top, bottom, left, right, harmonic_h, harmonic_w = extracting_harmonic(
+                copy_of_fourier_transform, ky_band_limit, kx_band_limit
+            )
+            harmonics.append(fourier_transform[top:bottom, left:right])
+            label = identifying_harmonic(main_max_h, main_max_w, harmonic_h, harmonic_w)
+            labels.append(label)
+            export[label] = [top, bottom, left, right, harmonic_h, harmonic_w]
+            zero_fft_region(copy_of_fourier_transform, top, bottom, left, right)
 
-            tmp_harmonic = [top_limit, bottom_limit, left_limit, right_limit, index_of_harmonic_height, index_of_harmonic_width]
-            harmonics.append(fourier_transform[top_limit : bottom_limit, left_limit : right_limit])
-
-            tmp_label = identifying_harmonic(index_of_main_maximun_height, index_of_main_maximun_width, index_of_harmonic_height, index_of_harmonic_width)
-            labels.append(tmp_label)
-
-            export[tmp_label] = tmp_harmonic
-
-            making_zero_region_in_2darray_representing_fft_of_image(copy_of_fourier_transform, top_limit, bottom_limit, left_limit, right_limit)
-            # plt.imshow(np.log(1 + np.abs(copy_of_fourier_transform)), cmap = "gray")
-            # plt.show()
-
-        # once finished, export results to pickle file "*.pkl"
-        with open('{}/harmonics.pkl'.format(tmp_files), 'wb') as harmonics_file:
-            pickle.dump(export, harmonics_file)
+        # Save the harmonic extraction limits to a pickle file.
+        pickle_path = tmp_files / "harmonics.pkl"
+        try:
+            with open(pickle_path, "wb") as harmonics_file:
+                pickle.dump(export, harmonics_file)
+        except Exception as e:
+            raise IOError(f"Error writing harmonic limits to pickle file: {e}")
 
         return harmonics, labels
 
     else:
-        # create labels to each harmonic and read them
-        harmonics = list()
-        labels = list()
+        harmonics = []
+        labels = []
+        pickle_path = tmp_files / "harmonics.pkl"
+        try:
+            with open(pickle_path, "rb") as harmonics_file:
+                data = pickle.load(harmonics_file)
+        except Exception as e:
+            raise IOError(f"Error reading harmonic limits from pickle file: {e}")
 
-        with open('{}/harmonics.pkl'.format(tmp_files), 'rb') as harmonics_file:
-            data = pickle.load(harmonics_file)
-
-            for label, harmonic_limits in data.items():
-                # for selecting the maximun (is in the midle, logic) asign by reading file of flat
-                top_limit, bottom_limit, left_limit, right_limit, index_of_harmonic_height, index_of_harmonic_width = harmonic_limits
-
-                harmonics.append(fourier_transform[top_limit : bottom_limit, left_limit : right_limit])
-                labels.append(label)
-
-                # # plt.imshow(np.log(1 + np.abs(copy_of_fourier_transform)), cmap = "gray")
-                # # plt.show()
+        # Reconstruct harmonic regions using the stored limits.
+        for label, limits in data.items():
+            top, bottom, left, right, _, _ = limits
+            harmonics.append(fourier_transform[top:bottom, left:right])
+            labels.append(label)
 
         return harmonics, labels
 
 
-def unwrapping_phase_gradient_operator(inverse_fourier_transform, label, unwrap_algorithm = "skimage"):
+def unwrapping_phase_gradient_operator(inverse_fourier_transform, label, unwrap_algorithm="skimage"):
     phase_map = np.angle(inverse_fourier_transform)
 
     if "horizontal" in label:
-        phase_map_gradient = np.gradient(f = phase_map, axis = 0)
+        phase_map_gradient = np.gradient(f=phase_map, axis=0)
         wrapped_phase_map_gradient = np.arctan(np.tan(phase_map_gradient))
         wrapped_phase_map_gradient[0, 0] = 0
 
         if unwrap_algorithm == "skimage":
             return unwrap_phase(wrapped_phase_map_gradient)
         else:
-            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis = 1), axis = 0)
+            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
 
     if "vertical" in label:
-        phase_map_gradient = np.gradient(f = phase_map, axis = 1)
+        phase_map_gradient = np.gradient(f=phase_map, axis=1)
         wrapped_phase_map_gradient = np.arctan(np.tan(phase_map_gradient))
         wrapped_phase_map_gradient[0, 0] = 0
 
         if unwrap_algorithm == "skimage":
             return unwrap_phase(wrapped_phase_map_gradient)
         else:
-            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis = 1), axis = 0)
+            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
 
 
-def differential_phase_contrast(image_main_harmonic, label, diff_operator = "sobel"):
+def differential_phase_contrast(image_main_harmonic, label, diff_operator="sobel"):
+    """
+    Computes the differential phase contrast of the main harmonic image using the specified operator.
+
+    Parameters
+    ----------
+    image_main_harmonic : np.ndarray
+        The input image representing the main harmonic.
+    label : str
+        The direction for the differential phase contrast.
+        Expected values are "horizontal" or "vertical".
+    diff_operator : str, optional
+        The differential operator to use. Default is "sobel".
+        Other accepted value is "gradient".
+
+    Returns
+    -------
+    np.ndarray
+        The computed differential phase contrast image.
+
+    Raises
+    ------
+    ValueError
+        If an unrecognized label or differential operator is provided.
+    """
+    # Convert label and operator to lowercase to ensure case-insensitive comparisons.
+    label = label.lower()
+    diff_operator = diff_operator.lower()
+
     if label == "horizontal":
         if diff_operator == "sobel":
+            # Apply the horizontal Sobel operator.
             return sobel_h(image_main_harmonic)
-        
+        elif diff_operator == "gradient":
+            # Use numpy's gradient along axis 0 for horizontal differentiation.
+            return np.gradient(image_main_harmonic, axis=0)
         else:
-            return np.gradient(f = image_main_harmonic, axis = 0)
-
+            raise ValueError(f"Unknown differential operator: {diff_operator}")
     elif label == "vertical":
         if diff_operator == "sobel":
+            # Apply the vertical Sobel operator.
             return sobel_v(image_main_harmonic)
-        
+        elif diff_operator == "gradient":
+            # Use numpy's gradient along axis 1 for vertical differentiation.
+            return np.gradient(image_main_harmonic, axis=1)
         else:
-            return np.gradient(f = image_main_harmonic, axis = 1)
-
+            raise ValueError(f"Unknown differential operator: {diff_operator}")
     else:
-        pass
+        raise ValueError(f"Unknown label for differential phase contrast: {label}")
 
 
-def contrast_retrieval_individual_members(harmonic, type_of_contrast, label = None):
-    inverse_fourier_transform_of_harmonic = np.fft.ifft2(harmonic)
-    if type_of_contrast == "absorption":
-        return np.log(1 / np.abs(inverse_fourier_transform_of_harmonic))
-    elif type_of_contrast == "scattering":
-        return np.log(1 / np.abs(inverse_fourier_transform_of_harmonic))
+def contrast_retrieval_individual_members(harmonic, type_of_contrast, label=None, eps=1e-12):
+    """
+    Retrieves a contrast image from a harmonic component by applying the inverse Fourier transform.
+
+    Parameters
+    ----------
+    harmonic : array_like
+        The Fourier transform component.
+    type_of_contrast : str
+        The type of contrast to retrieve. Options are:
+          - "absorption"
+          - "scattering"
+          - "phasemap"
+    label : optional
+        An optional label used by the phase map processing function.
+    eps : float, optional
+        A small constant added to avoid division by zero (default is 1e-12).
+
+    Returns
+    -------
+    np.ndarray
+        The computed contrast image.
+
+    Raises
+    ------
+    ValueError
+        If `type_of_contrast` is not one of the recognized options.
+    """
+    # Compute the inverse Fourier transform of the harmonic component.
+    ifft_harmonic = np.fft.ifft2(harmonic)
+
+    # Avoid division by zero by adding a small constant to the magnitude.
+    abs_ifft = np.abs(ifft_harmonic) + eps
+
+    # For "absorption" and "scattering", the same operation is applied.
+    if type_of_contrast in ("absorption", "scattering"):
+        return np.log(1 / abs_ifft)
     elif type_of_contrast == "phasemap":
-        return unwrapping_phase_gradient_operator(inverse_fourier_transform_of_harmonic, label)
-    else: return 0
-
-
+        # Process phase map using the unwrapping phase gradient operator.
+        return unwrapping_phase_gradient_operator(ifft_harmonic, label)
+    else:
+        # Raise an error if the provided type_of_contrast is not recognized.
+        raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")

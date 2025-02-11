@@ -58,7 +58,9 @@ def execute_SHI(path_to_images, path_to_result, mask_period, flat):
             fft_img, wavevector_ky, wavevector_kx, flat
         )
 
-        absorption = spatial_harmonics.contrast_retrieval_individual_members(harmonics[0], type_of_contrast="absorption")
+        main_harmonic = harmonics[0]
+
+        absorption = spatial_harmonics.contrast_retrieval_individual_members(main_harmonic, type_of_contrast="absorption")
         directories.export_result_to(absorption, path.stem, path_to_result, "absorption")
 
         differential_phase_horizontal = spatial_harmonics.differential_phase_contrast(absorption, label="horizontal")
@@ -69,12 +71,12 @@ def execute_SHI(path_to_images, path_to_result, mask_period, flat):
 
         for idx in range(1, len(labels)):
             scattering = spatial_harmonics.contrast_retrieval_individual_members(
-                harmonics[idx], type_of_contrast="scattering"
+                harmonics[idx], type_of_contrast="scattering", main_harmonic=main_harmonic
             )
             directories.export_result_to(scattering, path.stem + "_" + labels[idx], path_to_result, "scattering")
 
             phasemap = spatial_harmonics.contrast_retrieval_individual_members(
-                harmonics[idx], type_of_contrast="phasemap", label=labels[idx]
+                harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, label=labels[idx]
             )
             directories.export_result_to(phasemap, path.stem + "_" + labels[idx], path_to_result, "phasemap")
 
@@ -268,7 +270,9 @@ if __name__ == "__main__":
                 path_to_average_flat_scattering = math_utils.average_flat_harmonics(
                     path_to_flat_result, type_of_contrast="scattering"
                 )
-                path_to_average_flat_phase = math_utils.average_flat_harmonics(path_to_flat_result, type_of_contrast="phase")
+                path_to_average_flat_phase = math_utils.average_flat_harmonics(
+                    path_to_flat_result, type_of_contrast="phase"
+                )
                 path_to_average_flat_phasemap = math_utils.average_flat_harmonics(
                     path_to_flat_result, type_of_contrast="phasemap"
                 )
@@ -280,8 +284,12 @@ if __name__ == "__main__":
                     corrections.correct_flatmask(
                         path_to_result, path_to_average_flat_scattering, type_of_contrast="scattering"
                     )
-                    corrections.correct_flatmask(path_to_result, path_to_average_flat_phase, type_of_contrast="phase")
-                    corrections.correct_flatmask(path_to_result, path_to_average_flat_phasemap, type_of_contrast="phasemap")
+                    corrections.correct_flatmask(
+                        path_to_result, path_to_average_flat_phase, type_of_contrast="phase"
+                    )
+                    corrections.correct_flatmask(
+                        path_to_result, path_to_average_flat_phasemap, type_of_contrast="phasemap"
+                    )
 
                 elif args.all_3d:
                     corrections_ct.correct_flatmask(
@@ -290,7 +298,9 @@ if __name__ == "__main__":
                     corrections_ct.correct_flatmask(
                         path_to_result, path_to_average_flat_scattering, type_of_contrast="scattering"
                     )
-                    corrections_ct.correct_flatmask(path_to_result, path_to_average_flat_phase, type_of_contrast="phase")
+                    corrections_ct.correct_flatmask(
+                        path_to_result, path_to_average_flat_phase, type_of_contrast="phase"
+                    )
                     corrections_ct.correct_flatmask(
                         path_to_result, path_to_average_flat_phasemap, type_of_contrast="phasemap"
                     )

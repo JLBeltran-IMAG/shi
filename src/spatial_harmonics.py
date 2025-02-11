@@ -5,6 +5,9 @@ from skimage.filters import sobel_h, sobel_v
 import pickle
 from pathlib import Path
 
+import unwrapping_phase as uphase
+
+
 # Define the directory for temporary files using pathlib
 tmp_files = Path(__file__).resolve().parents[1] / "tmp"
 tmp_files.mkdir(parents=True, exist_ok=True)  # Crea la carpeta si no existe
@@ -329,28 +332,118 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
         return harmonics, labels
 
 
-def unwrapping_phase_gradient_operator(inverse_fourier_transform, label, unwrap_algorithm="skimage"):
-    phase_map = np.angle(inverse_fourier_transform)
+def unwrapping_phase_gradient_operator(ratio, label, unwrap_algorithm="skimage"):
+    """
+    Unwraps the phase gradient of an image using either a scikit-image algorithm or NumPy's unwrap.
 
+    The function first computes the phase map from the complex-valued 'ratio' using np.angle.
+    It then determines the gradient axis based on the provided label ('horizontal' or 'vertical')
+    and calculates the gradient of the phase map along that axis. The gradient is then wrapped into
+    the principal interval using the arctan(tan(x)) operation. Finally, an unwrapping algorithm is
+    applied to the wrapped phase gradient.
+
+    Parameters:
+        ratio (np.ndarray): Complex-valued input array from which the phase is computed.
+        label (str): A string that should contain either "horizontal" or "vertical" to indicate
+                     the direction for computing the gradient.
+        unwrap_algorithm (str): The algorithm to use for phase unwrapping. Defaults to "skimage".
+                                If not "skimage", NumPy's unwrap (applied twice) will be used.
+
+    Returns:
+        np.ndarray: The unwrapped phase gradient.
+    """
+    # Compute the phase map from the complex input
+    phase_map = np.angle(ratio)
+
+    # Determine the gradient axis based on the label
     if "horizontal" in label:
-        phase_map_gradient = np.gradient(f=phase_map, axis=0)
-        wrapped_phase_map_gradient = np.arctan(np.tan(phase_map_gradient))
-        wrapped_phase_map_gradient[0, 0] = 0
+        gradient_axis = 0
+    elif "vertical" in label:
+        gradient_axis = 1
+    else:
+        raise ValueError("Label must contain either 'horizontal' or 'vertical'")
 
-        if unwrap_algorithm == "skimage":
-            return unwrap_phase(wrapped_phase_map_gradient)
-        else:
-            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
+    # Compute the gradient of the phase map along the chosen axis
+    phase_map_gradient = np.gradient(phase_map, axis=gradient_axis)
 
-    if "vertical" in label:
-        phase_map_gradient = np.gradient(f=phase_map, axis=1)
-        wrapped_phase_map_gradient = np.arctan(np.tan(phase_map_gradient))
-        wrapped_phase_map_gradient[0, 0] = 0
+    # Wrap the gradient to the principal interval using arctan(tan(x))
+    wrapped_phase_map_gradient = np.arctan(np.tan(phase_map_gradient))
+    
+    # Set the top-left element to zero as a specific correction
+    wrapped_phase_map_gradient[0, 0] = 0
 
-        if unwrap_algorithm == "skimage":
-            return unwrap_phase(wrapped_phase_map_gradient)
-        else:
-            return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
+    # Unwrap the phase using the selected algorithm
+    if unwrap_algorithm == "skimage":
+        return unwrap_phase(wrapped_phase_map_gradient)
+    else:
+        # Apply NumPy's unwrap function along axis=1, then along axis=0
+        return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
+
+
+def compute_phase_map(inverse_fourier_transform, main_harmonic, label, epsilon=1e-12):
+    """
+    Computes the unwrapped phase map from the inverse Fourier transform and the main harmonic.
+
+    Parameters:
+    -----------
+    inverse_fourier_transform : np.ndarray
+        Array containing the inverse Fourier transform of the data.
+    main_harmonic : np.ndarray
+        Array containing the main harmonic in the Fourier domain.
+    epsilon : float, optional
+        Small value added to the denominator to avoid division by zero (default is 1e-12).
+
+    Returns:
+    --------
+    unwrapped_phase_map : np.ndarray
+        The unwrapped phase map.
+    """
+    # Compute the inverse Fourier transform of the main harmonic
+    main_harmonic_ifft = np.fft.ifft2(main_harmonic)
+
+    # Compute the ratio, avoiding division by zero by adding a small epsilon
+    ratio = inverse_fourier_transform / (main_harmonic_ifft + epsilon)
+
+    # Unwrap the phase using the skimage algorithm
+    unwrapped_phase_map = unwrap_phase(ratio, wrap_around=True)
+
+    return unwrapped_phase_map
+
+
+def compute_scattering(inverse_fourier_transform, main_harmonic, epsilon=1e-12):
+    """
+    Computes the scattering value from the inverse Fourier transform and the main harmonic.
+
+    Parameters:
+    -----------
+    inverse_fourier_transform : np.ndarray
+        Array containing the inverse Fourier transform of the data.
+    main_harmonic : np.ndarray
+        Array containing the main harmonic in the Fourier domain.
+    epsilon : float, optional
+        Small value added to the denominator to avoid division by zero (default is 1e-12).
+
+    Returns:
+    --------
+    scattering_value : np.ndarray
+        The computed scattering value.
+    """
+    # Compute the inverse Fourier transform of the main harmonic
+    main_harmonic_ifft = np.fft.ifft2(main_harmonic)
+
+    # Compute the ratio and avoid division by zero by adding epsilon
+    ratio = inverse_fourier_transform / (main_harmonic_ifft + epsilon)
+
+    # Get the absolute value of the ratio
+    abs_ratio = np.abs(ratio)
+
+    # Clip the absolute ratio to avoid taking the logarithm of values too close to zero
+    abs_ratio = np.clip(abs_ratio, epsilon, None)
+
+    # Compute the scattering as the natural logarithm of (1 / abs_ratio)
+    scattering_value = np.log(1 / abs_ratio)
+
+    return scattering_value
 
 
 def differential_phase_contrast(image_main_harmonic, label, diff_operator="sobel"):
@@ -404,33 +497,38 @@ def differential_phase_contrast(image_main_harmonic, label, diff_operator="sobel
         raise ValueError(f"Unknown label for differential phase contrast: {label}")
 
 
-def contrast_retrieval_individual_members(harmonic, type_of_contrast, label=None, eps=1e-12):
+def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmonic=None, label=None, eps=1e-12):
     """
-    Retrieves a contrast image from a harmonic component by applying the inverse Fourier transform.
+    Retrieves individual contrast members from a harmonic component.
+
+    This function processes harmonic components to retrieve different types of contrast
+    (absorption, scattering, or phase map) from the inverse Fourier transform of the input.
 
     Parameters
     ----------
-    harmonic : array_like
-        The Fourier transform component.
+    harmonic : ndarray
+        The harmonic component in Fourier space to be processed.
     type_of_contrast : str
-        The type of contrast to retrieve. Options are:
-          - "absorption"
-          - "scattering"
-          - "phasemap"
-    label : optional
-        An optional label used by the phase map processing function.
+        The type of contrast to retrieve. Must be one of:
+        - 'absorption': Computes absorption contrast
+        - 'scattering': Computes scattering contrast
+        - 'phasemap': Computes phase map contrast
+    label : any, optional
+        Label used for phase unwrapping when type_of_contrast is 'phasemap'.
     eps : float, optional
-        A small constant added to avoid division by zero (default is 1e-12).
+        Small constant to avoid division by zero. Default is 1e-12.
+    main_harmonic : any, optional
+        Reserved for potential future use with main harmonic reference.
 
     Returns
     -------
-    np.ndarray
-        The computed contrast image.
+    ndarray
+        The retrieved contrast map according to the specified type_of_contrast.
 
     Raises
     ------
     ValueError
-        If `type_of_contrast` is not one of the recognized options.
+        If type_of_contrast is not one of 'absorption', 'scattering', or 'phasemap'.
     """
     # Compute the inverse Fourier transform of the harmonic component.
     ifft_harmonic = np.fft.ifft2(harmonic)
@@ -438,12 +536,12 @@ def contrast_retrieval_individual_members(harmonic, type_of_contrast, label=None
     # Avoid division by zero by adding a small constant to the magnitude.
     abs_ifft = np.abs(ifft_harmonic) + eps
 
-    # For "absorption" and "scattering", the same operation is applied.
-    if type_of_contrast in ("absorption", "scattering"):
+    if type_of_contrast == "absorption":
         return np.log(1 / abs_ifft)
+    elif type_of_contrast == "scattering":
+        return compute_scattering(ifft_harmonic, main_harmonic)
     elif type_of_contrast == "phasemap":
-        # Process phase map using the unwrapping phase gradient operator.
-        return unwrapping_phase_gradient_operator(ifft_harmonic, label)
+        return compute_phase_map(ifft_harmonic, main_harmonic, label)
     else:
         # Raise an error if the provided type_of_contrast is not recognized.
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")

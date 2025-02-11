@@ -83,7 +83,7 @@ def create_corrections_folder(path, ct_folders):
     If the folder already exists, this function does nothing.
 
     """
-    directory_names = [names for names in path.iterdir() if "flat" not in names.name]
+    directory_names = [names for names in path.iterdir() if "flat" not in names.name and "results" not in names.name]
     for correction_folders in directory_names:
         path_to_corrections = correction_folders.joinpath("flat_corrections")
         if not path_to_corrections.exists():

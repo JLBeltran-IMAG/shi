@@ -84,31 +84,17 @@ To create an appropriate environment for Python and the necessary scientific lib
 
 ImageJ is a widely used image processing software that complements SHI functionalities.
 
-1. **Download ImageJ:**
-   
-   - Visit the official [ImageJ download page](https://imagej.nih.gov/ij/download.html) and download the Linux version.
-
-2. **Install ImageJ:**
-   
-   - Extract the downloaded archive to a directory of your choice.
-   - Navigate to the ImageJ directory and execute the ImageJ program.
-
-3. **Verify Installation:**
-   =======
-
-4. **Install ImageJ:**
-   
-   ```bash
+1. ```bash
    sudo apt install imagej
    ```
 
-5. **Verify Installation:**
+2. **Verify Installation:**
    
    - Launch ImageJ from the terminal to ensure it starts without issues.
 
 ---
 
-## Using the Software
+### Installing SHI
 
 The SHI: Spatial Harmonic Imaging software can be provided on a USB stick. You can run it directly from the USB stick without formal installation or copy the `shi` folder to any directory on your computer.
 
@@ -120,7 +106,7 @@ For installing the software, run on your terminal
 
 If you are using a USB stick, don't remove the usb-device while running the software 
 
-### Running SHI
+## Running SHI
 
 1. Open a terminal and navigate to the directory containing the data to proccess.
 
@@ -134,7 +120,7 @@ If you are using a USB stick, don't remove the usb-device while running the soft
 
 ### Testing Examples
 
-After installing and ensuring that Anaconda and ImageJ work correctly, test the software functionality by running:
+After installing and ensuring that Anaconda and ImageJ work correctly, test the software functionality by running (missing test):
 
 ```bash
 shi test
@@ -144,42 +130,13 @@ This verifies that the system processes the test data and produces the expected 
 
 ### Running Real Experiments
 
-For experiments with real samples, configure the input data as follow
+For real experiments, configure the input directory as follow:
 
- using a configuration file (e.g., `experiment_config.txt`) with flags for the `main.py` script. These flags indicate the paths for your raw experimental data:
+![Descripción de la imagen](docs/acq_scheme.png)
 
-- **Mandatory Flags:**
-  
-  - `-i, --images`: Path to the image(s) to analyze.
-  - `-o, --output`: Folder where the analysis results will be exported.
-  - `-m, --mask_period`: Number of projected pixels in the mask (integer).
-
-- **Optional Flags:**
-  
-  - `-d, --dark`: Path to dark images for calibration.
-  - `-f, --flat`: Path to flat images for calibration.
-  - `-b, --bright`: Path to bright images for calibration.
-  - `-a, --angle`: Specifies if angle correction is needed (`yes` if required).
+If the folder where you saved your experimental data has no the same structure above, the software will stop with error.
 
 **Example configuration file (`experiment_config.txt`):**
-
-```plaintext
--i /path/to/images
--o /path/to/output_folder
--m 10
--d /path/to/dark_images
--f /path/to/flat_images
--b /path/to/bright_images
--a yes
-```
-
-Replace `/path/to/...` with the actual paths for your experiment.
-
-**To run the experiment:**
-
-```bash
-shi calculate --all-2d -m 5 --average --export
-```
 
 The results will be saved in `Documents/CXI/CXI-DATA-ANALYSIS/foldername`.
 
@@ -189,24 +146,6 @@ The results will be saved in `Documents/CXI/CXI-DATA-ANALYSIS/foldername`.
 
 The SHI software includes additional tools for advanced data processing, each implemented as separate scripts:
 
-### Averaging Tool
-
-This tool computes the average for each contrast (absorption, scattering, and phase).
-
-1. Copy the script `avg.py` from `../source_code/scripts` to the folder containing the images you wish to average.
-
-2. Execute the commands for each contrast type:
-   
-   ```bash
-   python avg.py -t absorption
-   python avg.py -t scattering
-   python avg.py -t phase
-   ```
-   
-   The `-t` flag specifies the type of contrast to average.
-
-3. The averaged images are stored in a folder named `average`.
-
 ### Scattering and Absorption Analysis Tool
 
 Analyzes structural characteristics based on scattering and absorption data.
@@ -214,7 +153,7 @@ Analyzes structural characteristics based on scattering and absorption data.
 - Run:
   
   ```bash
-  python scatt_abs_analysis.py
+  shi morphostructural --morphostructural
   ```
 
 - When prompted, select the two files corresponding to the absorption and scattering images.
@@ -261,8 +200,7 @@ Corrects detector stripes that might introduce false features in the final image
 
 For additional support, to report issues, or to provide suggestions, please contact:
 
-- **Author:** Jorge Luis Beltran Diaz
-- **Additional Contact Information:** *(Add relevant details as necessary)*
+- **Author:** Jorge Luis Beltran Diaz and Danays Kunka
 
 ---
 

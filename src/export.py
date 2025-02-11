@@ -9,17 +9,34 @@ import shutil
 import itertools
 
 
+
 def export_results(path):
-    destination_directory = path.joinpath("results")
+    """
+    Export all TIFF files found in the 'absorption', 'scattering', 'phase', and 'phasemap'
+    directories (within the 'flat_corrections/average' structure) to a 'results' directory
+    located in the given base path.
+
+    Parameters:
+        path (Path): The base directory where the files are located and where the 'results'
+                     directory will be created.
+    """
+    # Create the destination directory for the results if it doesn't exist
+    destination_directory = path / "results"
     destination_directory.mkdir(parents=True, exist_ok=True)
 
-    absorption = path.joinpath("absorption", "flat_corrections", "average").glob("*.tif")
-    scattering = path.joinpath("scattering", "flat_corrections", "average").glob("*.tif")
-    phase = path.joinpath("phase", "flat_corrections", "average").glob("*.tif")
-    phasemap = path.joinpath("phasemap", "flat_corrections", "average").glob("*.tif")
+    # Define the categories to search for TIFF files
+    categories = ["absorption", "scattering", "phase", "phasemap"]
 
-    for files in itertools.chain(absorption, scattering, phase, phasemap):
-        shutil.copy2(files, destination_directory)
+    # Create an iterator that chains together all .tif files found in each category's
+    # 'flat_corrections/average' subdirectory
+    file_paths = itertools.chain(
+        *( (path / category / "flat_corrections" / "average").glob("*.tif") for category in categories )
+    )
+
+    # Copy each file to the destination directory
+    for file_path in file_paths:
+        shutil.copy2(file_path, destination_directory)
+        print(f"Copied: {file_path} -> {destination_directory}")
 
 
 def graphing_absorption(path, colormap = "gray"):
@@ -109,28 +126,3 @@ def graphing_scatt_phase(path_to_imgs, type_of_contrast, colormap = "gray"):
         fig_to_export.savefig("average/{}.png".format(label_to_export))
 
     return 0
-
-
-
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(prog = "Averange - python script", description = "%(prog)s implements the average of different files if they have the same name")
-#     parser.add_argument("-t", "--type", type = str, required = True, help = "type of contrast")
-#     parser.add_argument("--path", type = str, required = True, help = "path containing type of contrast")
-#     # parser.add_argument("-i", "--input_path", type = str, required = False, help = "path to files which should be averaged")
-#     args = parser.parse_args()
-
-
-#     path_to = averaging_same_name(Path(args.path), args.type)
-
-    # if args.type == "absorption":
-    #     graphing_absorption(path_to)
-    
-    # elif args.type == "scattering":
-    #     graphing_scatt_phase(path_to, args.type)
-
-    # elif args.type == "phase":
-    #     graphing_scatt_phase(path_to, args.type)
-
-    # else:
-    #     print("error")

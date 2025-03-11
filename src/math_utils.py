@@ -1,135 +1,92 @@
 import numpy as np
 from tifffile import imread, imwrite
+from pathlib import Path
 
 
-def average_flat_harmonics(path_to_flat, type_of_contrast):
+def average_flat_harmonics(path_to_flat: Path, type_of_contrast: str) -> Path:
     """
     Generate average images from flat field harmonics.
 
     This function calculates the average images from flat field harmonics based on the provided type of contrast.
+    Supported values for type_of_contrast are "scattering", "phasemap", "phase", and "absorption".
 
     Parameters
     ----------
-    path_to_flat : str
+    path_to_flat : Path
         The path to the directory containing flat field images.
     type_of_contrast : str
-        The type of contrast for which average images will be generated. Supported values are "scattering", "phase", and "absorption".
+        The type of contrast for which average images will be generated.
 
     Returns
     -------
-    str or path-like or file-like
+    Path
         The path to the directory where the average images are saved.
-
-    Notes
-    -----
-    This function assumes that flat field images are stored in a directory structure where each type of contrast has its own subdirectory within the main flat field directory.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the specified path to flat field directory does not exist.
-    ValueError
-        If an unsupported type of contrast is provided.
-
     """
+    # Create export directory (e.g. <path_to_flat>/<type_of_contrast>/average)
+    export_dir = path_to_flat / type_of_contrast / "average"
+    export_dir.mkdir(parents=True, exist_ok=True)
 
-    path_to_export = path_to_flat.joinpath(type_of_contrast, "average")
-
-    if not path_to_export.exists(): path_to_export.mkdir()
-
-    if type_of_contrast == "scattering" or type_of_contrast == "phasemap":
-        list_of_flat = list(path_to_flat.joinpath(type_of_contrast).glob("*tif"))
-
-        harmonic_horizontal_positive, harmonic_horizontal_negative, harmonic_vertical_positive, harmonic_vertical_negative = [], [], [], []
-
-        for flat_images in list_of_flat:
-            if "harmonic_horizontal_positive" in flat_images.stem: harmonic_horizontal_positive.append(flat_images)
-            if "harmonic_horizontal_negative" in flat_images.stem: harmonic_horizontal_negative.append(flat_images)
-            if "harmonic_vertical_positive" in flat_images.stem: harmonic_vertical_positive.append(flat_images)
-            if "harmonic_vertical_negative" in flat_images.stem: harmonic_vertical_negative.append(flat_images)
-
-        # checking dimensionality in harmonic_horizontal_positive
-        if len(harmonic_horizontal_positive) == 1:
-            harmonic_horizontal_positive = np.mean(imread(harmonic_horizontal_positive)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_horizontal_positive.tif"), harmonic_horizontal_positive, imagej = True)
-
+    def average_images(file_list):
+        """
+        Helper function to compute the average image from a list of files.
+        If only one file is provided, it returns its image content as float32.
+        Otherwise, it computes the pixelwise mean across all images.
+        """
+        if len(file_list) == 1:
+            return imread(file_list[0]).astype(np.float32)
         else:
-            harmonic_horizontal_positive = np.mean(imread(harmonic_horizontal_positive), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_horizontal_positive.tif"), harmonic_horizontal_positive, imagej = True)
+            images = [imread(f) for f in file_list]
+            return np.mean(images, axis=0, dtype=np.float32)
 
-        # checking dimensionality in harmonic_horizontal_negative
-        if len(harmonic_horizontal_negative) == 1:
-            harmonic_horizontal_negative = np.mean(imread(harmonic_horizontal_negative)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_horizontal_negative.tif"), harmonic_horizontal_negative, imagej = True)
-
-        else:
-            harmonic_horizontal_negative = np.mean(imread(harmonic_horizontal_negative), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_horizontal_negative.tif"), harmonic_horizontal_negative, imagej = True)
-
-        # checking dimensionality in harmonic_vertical_positive
-        if len(harmonic_vertical_positive) == 1:
-            harmonic_vertical_positive = np.mean(imread(harmonic_vertical_positive)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_vertical_positive.tif"), harmonic_vertical_positive, imagej = True)
-
-        else:
-            harmonic_vertical_positive = np.mean(imread(harmonic_vertical_positive), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_vertical_positive.tif"), harmonic_vertical_positive, imagej = True)
-
-        # checking dimensionality in harmonic_vertical_negative
-        if len(harmonic_vertical_negative) == 1:
-            harmonic_vertical_negative = np.mean(imread(harmonic_vertical_negative)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_vertical_negative.tif"), harmonic_vertical_negative, imagej = True)
-
-        else:
-            harmonic_vertical_negative = np.mean(imread(harmonic_vertical_negative), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "harmonic_vertical_negative.tif"), harmonic_vertical_negative, imagej = True)
-
+    if type_of_contrast in ("scattering", "phasemap"):
+        flat_files = list((path_to_flat / type_of_contrast).glob("*tif"))
+        # Initialize a dictionary to store files by channel (including diagonal channels)
+        channels = {
+            "harmonic_horizontal_positive": [],
+            "harmonic_horizontal_negative": [],
+            "harmonic_vertical_positive": [],
+            "harmonic_vertical_negative": [],
+            "harmonic_diagonal_p1_p1": [],
+            "harmonic_diagonal_p1_n1": [],
+            "harmonic_diagonal_n1_p1": [],
+            "harmonic_diagonal_n1_n1": []
+        }
+        # Categorize each file into its corresponding channel based on its stem
+        for file in flat_files:
+            stem = file.stem
+            for key in channels:
+                if key in stem:
+                    channels[key].append(file)
+        
+        # Process each channel found in the dictionary
+        for key, file_list in channels.items():
+            if file_list:
+                avg_image = average_images(file_list)
+                imwrite(export_dir / f"{key}.tif", avg_image, imagej=True)
 
     elif type_of_contrast == "phase":
-        list_of_flat = list(path_to_flat.joinpath(type_of_contrast).glob("*tif"))
-
-        horizontal, vertical = [], []
-
-        for flat_images in list_of_flat:
-            if "horizontal" in flat_images.stem: horizontal.append(flat_images)
-            if "vertical" in flat_images.stem: vertical.append(flat_images)
-
-        # checking dimensionality in horizontal
-        if len(horizontal) == 1:
-            horizontal = np.mean(imread(horizontal)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "horizontal.tif"), horizontal, imagej = True)
-
-        else:
-            horizontal = np.mean(imread(horizontal), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "horizontal.tif"), horizontal, imagej = True)
-
-        # checking dimensionality in vertical
-        if len(vertical) == 1:
-            vertical = np.mean(imread(vertical)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "vertical.tif"), vertical, imagej = True)
-
-        else:
-            vertical = np.mean(imread(vertical), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "vertical.tif"), vertical, imagej = True)
+        flat_files = list((path_to_flat / type_of_contrast).glob("*tif"))
+        channels = {"horizontal": [], "vertical": []}
+        for file in flat_files:
+            stem = file.stem
+            if "horizontal" in stem:
+                channels["horizontal"].append(file)
+            if "vertical" in stem:
+                channels["vertical"].append(file)
+        for key, file_list in channels.items():
+            if file_list:
+                avg_image = average_images(file_list)
+                imwrite(export_dir / f"{key}.tif", avg_image, imagej=True)
 
     elif type_of_contrast == "absorption":
-        absorption_export = list(path_to_flat.joinpath(type_of_contrast).glob("*.tif"))
-
-        # checking dimensionality in absorption_export
-        if len(absorption_export) == 1:
-            absorption_average = np.mean(imread(absorption_export)[None, :, :], axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "absorption.tif"), absorption_average, imagej = True)
-
+        absorption_files = list((path_to_flat / type_of_contrast).glob("*.tif"))
+        if absorption_files:
+            avg_image = average_images(absorption_files)
+            imwrite(export_dir / "absorption.tif", avg_image, imagej=True)
         else:
-            absorption_average = np.mean(imread(absorption_export), axis = 0, dtype = np.float32)
-            imwrite("{}/{}".format(path_to_export, "absorption.tif"), absorption_average, imagej = True)
+            raise FileNotFoundError("No absorption flat field files found.")
 
     else:
-        print("Algo anda mal")
+        print("Unsupported type of contrast provided.")
 
-    return path_to_export
-
-
-
-
-
+    return export_dir

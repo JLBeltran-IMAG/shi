@@ -5,6 +5,8 @@ from skimage.filters import sobel_h, sobel_v
 import pickle
 from pathlib import Path
 
+import directories
+from tifffile import imread
 import unwrapping_phase as uphase
 
 
@@ -293,7 +295,7 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
         zero_fft_region(copy_of_fourier_transform, top, bottom, left, right)
 
         # Extract higher-order harmonics (by default, 4 additional harmonics).
-        for i in range(4):
+        for i in range(8):
             top, bottom, left, right, harmonic_h, harmonic_w = extracting_harmonic(
                 copy_of_fourier_transform, ky_band_limit, kx_band_limit
             )
@@ -545,3 +547,52 @@ def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmo
     else:
         # Raise an error if the provided type_of_contrast is not recognized.
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")
+
+
+def execute_SHI(path_to_images, path_to_result, mask_period, flat):
+    """
+    Execute spatial harmonics analysis on a set of images.
+
+    This function performs spatial harmonics analysis on a set of images and exports the results to the specified directory.
+
+    Parameters
+    ----------
+    path_to_images : list of str
+        A list of paths to the images for analysis.
+    path_to_result : str
+        The path to the directory where the results will be exported.
+    mask_period : int
+        The period of the mask used in the analysis.
+
+    """
+    for path in path_to_images:
+        img = imread(path).astype(np.float32)
+
+        wavevector_kx, wavevector_ky, fft_img = squared_fast_fourier_transform_linear_and_logarithmic(
+            img, mask_period
+        )
+        harmonics, labels = spatial_harmonics_of_fourier_spectrum(
+            fft_img, wavevector_ky, wavevector_kx, flat
+        )
+
+        main_harmonic = harmonics[0]
+
+        absorption = contrast_retrieval_individual_members(main_harmonic, type_of_contrast="absorption")
+        directories.export_result_to(absorption, path.stem, path_to_result, "absorption")
+
+        differential_phase_horizontal = differential_phase_contrast(absorption, label="horizontal")
+        differential_phase_vertical = differential_phase_contrast(absorption, label="vertical")
+
+        directories.export_result_to(differential_phase_horizontal, path.stem + "_" + "horizontal", path_to_result, "phase")
+        directories.export_result_to(differential_phase_vertical, path.stem + "_" + "vertical", path_to_result, "phase")
+
+        for idx in range(1, len(labels)):
+            scattering = contrast_retrieval_individual_members(
+                harmonics[idx], type_of_contrast="scattering", main_harmonic=main_harmonic
+            )
+            directories.export_result_to(scattering, path.stem + "_" + labels[idx], path_to_result, "scattering")
+
+            phasemap = contrast_retrieval_individual_members(
+                harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, label=labels[idx]
+            )
+            directories.export_result_to(phasemap, path.stem + "_" + labels[idx], path_to_result, "phasemap")

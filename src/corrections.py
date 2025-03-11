@@ -131,9 +131,9 @@ def correct_flatmask(path_to_images, path_to_flat, type_of_contrast) -> None:
     images_dir = path_to_images / type_of_contrast
     output_dir = images_dir / "flat_corrections"
 
-    if type_of_contrast.lower() == "absorption":
-        image_files = sorted(images_dir.glob("*.tif"))
-        flat_path = sorted(path_to_flat.glob("*.tif"))
+    if type_of_contrast == "absorption":
+        image_files = list(images_dir.glob("*.tif"))
+        flat_path = list(path_to_flat.glob("*.tif"))
 
         # Check if the flat_path list is empty
         if not flat_path:
@@ -145,18 +145,13 @@ def correct_flatmask(path_to_images, path_to_flat, type_of_contrast) -> None:
             process_flat_correction(img_path, flat_path, output_dir)
 
     elif type_of_contrast in {"scattering", "phase", "phasemap"}:
-        image_files = sorted(images_dir.glob("*.tif"))
-        flat_files = sorted(path_to_flat.glob("*.tif"))
-
-        # Separate images by orientation (assuming the utility returns two lists: horizontal and vertical)
-        image_horizontal, image_vertical = utils.separate_orientation_lists(image_files)
-        flat_horizontal, flat_vertical = utils.separate_orientation_lists(flat_files)
+        image_files = list(images_dir.glob("*.tif"))
+        flat_files = list(path_to_flat.glob("*.tif"))
 
         # Pair images with corresponding flat images using a utility function
-        paired_horizontal = utils.join_harmonics_with_flat(image_horizontal, flat_horizontal)
-        paired_vertical = utils.join_harmonics_with_flat(image_vertical, flat_vertical)
+        paired = utils.join_harmonics_with_flat(image_files, flat_files)
 
-        for pair in chain(paired_horizontal, paired_vertical):
+        for pair in paired:
             # Each pair should contain at least two paths: (image_path, flat_path)
             if isinstance(pair, (list, tuple)) and len(pair) == 2:
                 process_flat_correction(pair[0], pair[1], output_dir)
@@ -180,17 +175,31 @@ def correct_brightfield(path_to_bright, path_to_images):
         The path to the directory containing the images to be corrected.
 
     """
-    images = list(Path(path_to_images).glob("*.tif"))
+    path_to_corrected_bright = Path(path_to_bright).joinpath("corrected_images")
     path_to_corrected_images = Path(path_to_images).joinpath("corrected_images")
+
+    images = list(Path(path_to_corrected_images).glob("*.tif"))
 
     if not path_to_corrected_images.exists():
         path_to_corrected_images.mkdir()
 
-    bright_image_average = np.mean([imread(bright) for bright in Path(path_to_bright).glob("*.tif")], axis=0)
+    bright = imread([bright for bright in Path(path_to_corrected_bright).glob("*.tif")])
+
+    # checking if there is only one element in the list
+    if bright.ndim == 2:
+        bright = bright[None, :, :]
+
+    bright_image_average = np.mean(bright, axis=0)
+
     for imgs in images:
-        corrected_images = imread(imgs) / bright_image_average * np.mean(bright_image_average)
-        imwrite(path_to_corrected_images.joinpath("{}".format(imgs.name)), corrected_images.astype(np.float32), imagej=True)
+        img_array = imread(imgs).astype(np.float32)
+        result_div = np.copy(img_array).astype(np.float32)
 
+        corrected_images = np.divide(img_array, bright_image_average, out=result_div, where=bright_image_average != 0)
 
-# Manejo de excepciones ---> Probar mas adelante:
-# try, except, else and finally
+        imwrite(
+            path_to_corrected_images.joinpath("{}".format(imgs.name)),
+            corrected_images.astype(np.float32),
+            imagej=True
+        )
+

@@ -62,7 +62,7 @@ def separate_orientation_lists(harmonics_list):
     return horizontal_data, vertical_data
 
 
-def create_corrections_folder(path, ct_folders):
+def create_corrections_folder(path):
     """
     Create a folder named "corrections" at the specified location.
 
@@ -88,23 +88,6 @@ def create_corrections_folder(path, ct_folders):
         path_to_corrections = correction_folders.joinpath("flat_corrections")
         if not path_to_corrections.exists():
             path_to_corrections.mkdir(parents = True, exist_ok = True)
-    
-    # path_phasemap_ct y scattering correction folders
-    if ct_folders:
-        path_scattering_cth = path.joinpath("scattering", "abs_corrections", "horizontal")
-        path_scattering_ctv = path.joinpath("scattering", "abs_corrections", "vertical")
-        path_scattering_cth.mkdir(parents = True, exist_ok = True)
-        path_scattering_ctv.mkdir(parents = True, exist_ok = True)
-
-        path_phasemap_cth = path.joinpath("phasemap", "abs_corrections", "horizontal")
-        path_phasemap_ctv = path.joinpath("phasemap", "abs_corrections", "vertical")
-        path_phasemap_cth.mkdir(parents = True, exist_ok = True)
-        path_phasemap_ctv.mkdir(parents = True, exist_ok = True)
-
-        path_phase_cth = path.joinpath("phase", "flat_corrections", "horizontal")
-        path_phase_ctv = path.joinpath("phase", "flat_corrections", "vertical")
-        path_phase_cth.mkdir(parents = True, exist_ok = True)
-        path_phase_ctv.mkdir(parents = True, exist_ok = True)
 
     return path
 

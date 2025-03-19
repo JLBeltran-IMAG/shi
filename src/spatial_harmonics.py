@@ -407,7 +407,7 @@ def compute_phase_map(inverse_fourier_transform, main_harmonic, label, epsilon=1
     ratio = inverse_fourier_transform / (main_harmonic_ifft + epsilon)
 
     # Unwrap the phase using the skimage algorithm
-    unwrapped_phase_map = unwrap_phase(ratio, wrap_around=True)
+    unwrapped_phase_map = unwrap_phase(np.angle(ratio), wrap_around=True)
 
     return unwrapped_phase_map
 

@@ -6,7 +6,7 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
-import subprocess as subprocess
+import subprocess
 import argparse
 import sys
 from pathlib import Path

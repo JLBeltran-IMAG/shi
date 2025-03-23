@@ -67,15 +67,13 @@ def averaging_same_name(path_to_files, type_of_contrast):
             imgs_vertical2 = imgs_vertical2[None, :, :]
         avg_vertical2 = np.mean(imgs_vertical2, axis = 0)
 
-        avg_phasemap_positive = (avg_horizontal2 + avg_vertical2) / 2
-        avg_phasemap_negative = (avg_horizontal1 + avg_vertical1) / 2
+        avg_horizontal = (avg_horizontal1 - avg_horizontal2) / 2
+        avg_vertical = (avg_vertical1 - avg_vertical2) / 2
+        avg_phasemap = (avg_horizontal + avg_vertical) / 2
 
-        ti.imwrite("{}/horizontal_positive_phasemap.tif".format(path_to_export), avg_horizontal2)
-        ti.imwrite("{}/vertical_positive_phasemap.tif".format(path_to_export), avg_vertical2)
-        ti.imwrite("{}/bidirectional_positive_phasemap.tif".format(path_to_export), avg_phasemap_positive)
-        ti.imwrite("{}/horizontal_negative_phasemap.tif".format(path_to_export), avg_horizontal1)
-        ti.imwrite("{}/vertical_negative_phasemap.tif".format(path_to_export), avg_vertical1)
-        ti.imwrite("{}/bidirectional_negative_phasemap.tif".format(path_to_export), avg_phasemap_negative)
+        ti.imwrite("{}/horizontal_phasemap.tif".format(path_to_export), avg_horizontal)
+        ti.imwrite("{}/vertical_phasemap.tif".format(path_to_export), avg_vertical)
+        ti.imwrite("{}/bidirectional_phasemap.tif".format(path_to_export), avg_phasemap)
 
     else:
         print("Write the right contrast")

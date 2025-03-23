@@ -29,12 +29,11 @@ import math_utils
 import corrections
 import crop
 import angles_correction
+import correcting_stripes
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-
 
 
 def my_parser():
@@ -67,7 +66,7 @@ def my_parser():
     # Defining subparsers for various functionalities
     parser_shi = subparsers.add_parser("calculate", help="This subcommand executes the SHI method.")
     parser_morfo = subparsers.add_parser("morphostructural", help="This subcommand performs morphostructural analysis.")
-    parser_angle = subparsers.add_parser(
+    parser_prep = subparsers.add_parser(
         "preprocessing", help="This subcommand corrects angle alignment of optical components."
     )
     parser_clean = subparsers.add_parser(
@@ -84,6 +83,7 @@ def my_parser():
     parser_shi.add_argument("-d", "--dark", type=str, help="Path to dark image(s)")
     parser_shi.add_argument("-b", "--bright", type=str, help="Path to bright image(s)")
 
+
     # Option 2: Automatically detected input images
     parser_shi.add_argument(
         "--all-2d", action="store_true", help="Executes the SHI-2D method in the current folder without specifying inputs"
@@ -92,8 +92,14 @@ def my_parser():
         "--all-3d", action="store_true", help="Executes the SHI-CT method in the current folder without specifying inputs"
     )
     parser_shi.add_argument("--average", action="store_true", help="Apply averaging")
-    parser_shi.add_argument("--export", action="store_true", help="Apply averaging")
+    parser_shi.add_argument("--export", action="store_true", help="Apply export")
     parser_shi.add_argument("--angle-after", action="store_true", help="Apply angle correction after measurements")
+    parser_shi.add_argument("--unwrap-phase", type=str, default=None, help="Select phase unwrapping method: "
+    "branch_cut - 'Goldstein’s Branch-Cut Unwrapping (Simplified)', "
+    "least_squares - 'Least-Squares Phase Unwrapping using FFT', "
+    "quality_guided - 'Quality-Guided Phase Unwrapping', "
+    "min_lp - 'Minimum Lp-Norm Phase Unwrapping', "
+    "'empty = default (dont write anything) - Algorithm based on sorting by reliability following a noncontinuous path'")
     # -----------------------------------------------------------------------------------------------------------------
 
     # ---------------------------------------- Subparser morphostructural ---------------------------------------------
@@ -102,8 +108,9 @@ def my_parser():
     # -----------------------------------------------------------------------------------------------------------------
 
     # ---------------------------------------- Subparser preprocessing --------------------------------------------------------
-    # Angle correction subcommand
-    # parser_angle.add_argument("--angle-before", action="store_true", help="correct angle or not, before measurements")
+    # Preprocessing subcommand
+    parser_prep.add_argument("--stripes", action="store_true", help="correct stripes deleting them")
+    # parser_prep.add_argument("--stripes-user", action="store_true", help="mas adelante")
     # -----------------------------------------------------------------------------------------------------------------
 
     # ---------------------------------------- Subparser clean --------------------------------------------------------
@@ -131,6 +138,7 @@ if __name__ == "__main__":
 
     if args.command == "calculate":
         mask_period = int(args.mask_period)
+        unwrap = args.unwrap_phase
 
         logger.info("Executing 'calculate' command with mask_period: %d", mask_period)
 
@@ -240,7 +248,7 @@ if __name__ == "__main__":
 
             type_of_contrast = ("absorption", "scattering", "phase", "phasemap")
             if flat_path is None:
-                spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period)
+                spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, unwrap, False)
             else:
                 path_to_corrected_flat = Path(flat_path).joinpath(foldername_to).as_posix()
 
@@ -250,8 +258,8 @@ if __name__ == "__main__":
                     sample_folder_name="flat",
                 )
 
-                spatial_harmonics.execute_SHI(path_to_flat, path_to_flat_result, mask_period, True)
-                spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, False)
+                spatial_harmonics.execute_SHI(path_to_flat, path_to_flat_result, mask_period, unwrap, True)
+                spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, unwrap, False)
                 path_to_result = utils.create_corrections_folder(path_to_result)
 
                 for contrast in type_of_contrast:
@@ -296,6 +304,14 @@ if __name__ == "__main__":
             cmd = ["python", "morphos.py", "--select_folder", "--manually"]
             logger.info("Executing morphostructural analysis with command: %s", cmd)
             subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True)
+        else:
+            logger.error("Unknown command: %s", args.command)
+            raise ValueError(f"Unknown command: {args.command}")
+
+    elif args.command == "preprocessing":
+        if args.stripes:
+            current_folder = Path.cwd()
+            correcting_stripes.correcting_stripes(current_folder)
         else:
             logger.error("Unknown command: %s", args.command)
             raise ValueError(f"Unknown command: {args.command}")

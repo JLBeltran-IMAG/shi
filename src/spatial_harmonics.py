@@ -382,7 +382,7 @@ def unwrapping_phase_gradient_operator(ratio, label, unwrap_algorithm="skimage")
         return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
 
 
-def compute_phase_map(inverse_fourier_transform, main_harmonic, label, epsilon=1e-12):
+def compute_phase_map(inverse_fourier_transform, main_harmonic, unwrap = None, epsilon=1e-12):
     """
     Computes the unwrapped phase map from the inverse Fourier transform and the main harmonic.
 
@@ -405,9 +405,16 @@ def compute_phase_map(inverse_fourier_transform, main_harmonic, label, epsilon=1
 
     # Compute the ratio, avoiding division by zero by adding a small epsilon
     ratio = inverse_fourier_transform / (main_harmonic_ifft + epsilon)
+    wrapped_phase = np.angle(ratio)
 
     # Unwrap the phase using the skimage algorithm
-    unwrapped_phase_map = unwrap_phase(np.angle(ratio), wrap_around=True)
+    if unwrap is None: unwrapped_phase_map = unwrap_phase(wrapped_phase, wrap_around=True)
+    elif unwrap == "branch_cut": unwrapped_phase_map = uphase.goldstein_branch_cut_unwrap(wrapped_phase)
+    elif unwrap == "least_squares": unwrapped_phase_map = uphase.ls_unwrap_phase(wrapped_phase)
+    elif unwrap == "quality_guided": unwrapped_phase_map = uphase.quality_guided_unwrap(wrapped_phase)
+    elif unwrap == "min_lp": unwrapped_phase_map = uphase.min_lp_unwrap(wrapped_phase)
+    else:
+        raise ValueError("Unknown phase unwrapping algorithm")
 
     return unwrapped_phase_map
 
@@ -499,7 +506,7 @@ def differential_phase_contrast(image_main_harmonic, label, diff_operator="sobel
         raise ValueError(f"Unknown label for differential phase contrast: {label}")
 
 
-def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmonic=None, label=None, eps=1e-12):
+def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmonic=None, unwrap=None, eps=1e-12):
     """
     Retrieves individual contrast members from a harmonic component.
 
@@ -543,13 +550,13 @@ def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmo
     elif type_of_contrast == "scattering":
         return compute_scattering(ifft_harmonic, main_harmonic)
     elif type_of_contrast == "phasemap":
-        return compute_phase_map(ifft_harmonic, main_harmonic, label)
+        return compute_phase_map(ifft_harmonic, main_harmonic, unwrap)
     else:
         # Raise an error if the provided type_of_contrast is not recognized.
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")
 
 
-def execute_SHI(path_to_images, path_to_result, mask_period, flat):
+def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat):
     """
     Execute spatial harmonics analysis on a set of images.
 
@@ -593,6 +600,6 @@ def execute_SHI(path_to_images, path_to_result, mask_period, flat):
             directories.export_result_to(scattering, path.stem + "_" + labels[idx], path_to_result, "scattering")
 
             phasemap = contrast_retrieval_individual_members(
-                harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, label=labels[idx]
+                harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, unwrap=unwrap
             )
             directories.export_result_to(phasemap, path.stem + "_" + labels[idx], path_to_result, "phasemap")

@@ -382,7 +382,7 @@ def unwrapping_phase_gradient_operator(ratio, label, unwrap_algorithm="skimage")
         return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
 
 
-def compute_phase_map(inverse_fourier_transform, main_harmonic, unwrap = None, epsilon=1e-12):
+def compute_phase_map(inverse_fourier_transform, main_harmonic, unwrap=None, epsilon=1e-12):
     """
     Computes the unwrapped phase map from the inverse Fourier transform and the main harmonic.
 

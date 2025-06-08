@@ -11,6 +11,7 @@ import argparse
 import sys
 from pathlib import Path
 import logging
+import time
 
 # Path to source
 current_dir = Path(__file__).resolve().parent
@@ -212,6 +213,7 @@ if __name__ == "__main__":
                 raise ValueError(f"Crop file not found: {crop_file}")
             crop_from_tmptxt = np.rint(np.loadtxt(crop_file.as_posix())).astype(int)
 
+            time0 = time.time()
 
             if dark_path is not None:
                 corrections.correct_darkfield(
@@ -249,6 +251,8 @@ if __name__ == "__main__":
             type_of_contrast = ("absorption", "scattering", "phase", "phasemap")
             if flat_path is None:
                 spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, unwrap, False)
+                time1 = time.time()
+                logger.info("Time elapsed: %f", time1 - time0)
             else:
                 path_to_corrected_flat = Path(flat_path).joinpath(foldername_to).as_posix()
 
@@ -274,6 +278,9 @@ if __name__ == "__main__":
                 else:
                     logger.error("No mode selected (neither all_2d nor all_3d specified)")
                     raise ValueError("No mode selected (neither all_2d nor all_3d specified)")
+                
+                time1 = time.time()
+                logger.info("Time elapsed: %f", time1 - time0)
 
             if args.average:
                 for contrast in type_of_contrast:

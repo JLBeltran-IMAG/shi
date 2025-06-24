@@ -1,3 +1,5 @@
+![Descripción de la imagen](docs/logo_shi.png)
+
 # SHI: A CLI-software for Spatial Harmonic X-ray Imaging
 
 **SHI: Spatial Harmonic Imaging** is a user-friendly software designed to facilitate Spatial Harmonic Imaging (SHI), a multi-contrast X-ray imaging modality. It produces high-resolution images in absorption, scattering, and differential phase modes within seconds per image. The software is intended for users who are new to the technique, including students and companies seeking effective data analysis tools.

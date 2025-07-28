@@ -62,36 +62,6 @@ def separate_orientation_lists(harmonics_list):
     return horizontal_data, vertical_data
 
 
-def create_corrections_folder(path):
-    """
-    Create a folder named "corrections" at the specified location.
-
-    This function creates a folder named "corrections" at the specified location. If the folder already exists, nothing will happen.
-
-    Parameters
-    ----------
-    path : Path
-        Path object representing the location where the "corrections" folder will be created.
-
-    Returns
-    -------
-    path_to_corrections : Path
-        Path object representing the location of the "corrections" folder.
-
-    Notes
-    -----
-    If the folder already exists, this function does nothing.
-
-    """
-    directory_names = [names for names in path.iterdir() if "flat" not in names.name and "results" not in names.name]
-    for correction_folders in directory_names:
-        path_to_corrections = correction_folders.joinpath("flat_corrections")
-        if not path_to_corrections.exists():
-            path_to_corrections.mkdir(parents = True, exist_ok = True)
-
-    return path
-
-
 def export_average_scatt_phase_images(path_to_images, type_of_contrast):
     """
     Export averaged phase and scattering contrast images to the corrections folder.

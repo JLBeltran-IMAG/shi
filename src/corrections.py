@@ -8,7 +8,13 @@ import utils
 import angles_correction
 
 
-def crop_without_corrections(path_to_images, crop=None, allow_crop=False, angle=0.0):
+def crop_without_corrections(
+    path_to_images: Path | str,
+    crop: tuple[int | None, int | None, int | None, int | None],
+    allow_crop: bool = False,
+    angle: np.float32 = np.float32(0.0)
+) -> None:
+
     images = list(Path(path_to_images).glob("*.tif"))
     path_to_cropped_images = Path(path_to_images).joinpath("crop_without_correction")
 
@@ -18,8 +24,7 @@ def crop_without_corrections(path_to_images, crop=None, allow_crop=False, angle=
     if allow_crop:
         y0, y1, x0, x1 = crop
     else:
-        y0, x0 = 0, 0
-        y1, x1 = images[0].shape
+        y0, y1, x0, x1 = 0, -1, 0, -1
 
     for imgs in images:
         corrected_images = imread(imgs)
@@ -34,7 +39,13 @@ def crop_without_corrections(path_to_images, crop=None, allow_crop=False, angle=
         )
 
 
-def correct_darkfield(path_to_dark, path_to_images, crop=None, allow_crop=False, angle=0.0):
+def correct_darkfield(
+    path_to_dark: Path | str,
+    path_to_images: Path | str,
+    crop: tuple[int | None, int | None, int | None, int | None],
+    allow_crop: bool = False,
+    angle: np.float32 = np.float32(0.0)
+) -> None:
     """
     Correct images using dark field correction.
 

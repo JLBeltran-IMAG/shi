@@ -160,44 +160,44 @@ def quality_guided_unwrap(wrapped_phase):
             heapq.heappush(heap, (-quality[ni, nj], (ni, nj)))
     return unwrapped
 
-# -----------------------------------------------
-# 4. Minimum Lp-Norm Phase Unwrapping (Using cvxpy)
-# -----------------------------------------------
-def min_lp_unwrap(wrapped_phase, p=1):
-    """
-    Minimum Lp-Norm Phase Unwrapping using convex optimization.
+# # -----------------------------------------------
+# # 4. Minimum Lp-Norm Phase Unwrapping (Using cvxpy)
+# # -----------------------------------------------
+# def min_lp_unwrap(wrapped_phase, p=1):
+#     """
+#     Minimum Lp-Norm Phase Unwrapping using convex optimization.
     
-    For p=2, this is equivalent to a least-squares formulation.
-    For p=1 (or other values), the method minimizes the sum of the Lp norms
-    of the differences between finite differences of the unwrapped phase and
-    the wrapped phase differences.
+#     For p=2, this is equivalent to a least-squares formulation.
+#     For p=1 (or other values), the method minimizes the sum of the Lp norms
+#     of the differences between finite differences of the unwrapped phase and
+#     the wrapped phase differences.
     
-    Parameters:
-        wrapped_phase (np.ndarray): 2D array of wrapped phase (radians).
-        p (float): The norm to be minimized (default is 1).
+#     Parameters:
+#         wrapped_phase (np.ndarray): 2D array of wrapped phase (radians).
+#         p (float): The norm to be minimized (default is 1).
     
-    Returns:
-        np.ndarray: Unwrapped phase.
-    """
-    rows, cols = wrapped_phase.shape
-    # Define the optimization variable.
-    u = cp.Variable((rows, cols))
+#     Returns:
+#         np.ndarray: Unwrapped phase.
+#     """
+#     rows, cols = wrapped_phase.shape
+#     # Define the optimization variable.
+#     u = cp.Variable((rows, cols))
     
-    # Finite differences for u (unwrapped phase) in x and y directions.
-    dx = u[:, 1:] - u[:, :-1]
-    dy = u[1:, :] - u[:-1, :]
+#     # Finite differences for u (unwrapped phase) in x and y directions.
+#     dx = u[:, 1:] - u[:, :-1]
+#     dy = u[1:, :] - u[:-1, :]
     
-    # Compute wrapped differences of the measured phase.
-    wrapped_dx = np.angle(np.exp(1j * (wrapped_phase[:, 1:] - wrapped_phase[:, :-1])))
-    wrapped_dy = np.angle(np.exp(1j * (wrapped_phase[1:, :] - wrapped_phase[:-1, :])))
+#     # Compute wrapped differences of the measured phase.
+#     wrapped_dx = np.angle(np.exp(1j * (wrapped_phase[:, 1:] - wrapped_phase[:, :-1])))
+#     wrapped_dy = np.angle(np.exp(1j * (wrapped_phase[1:, :] - wrapped_phase[:-1, :])))
     
-    # Objective: minimize the sum of the Lp norms of the differences.
-    objective = cp.Minimize(cp.sum(cp.abs(dx - wrapped_dx)**p) + cp.sum(cp.abs(dy - wrapped_dy)**p))
-    # Constraint to fix the global phase (remove ambiguity).
-    constraints = [u[0, 0] == wrapped_phase[0, 0]]
+#     # Objective: minimize the sum of the Lp norms of the differences.
+#     objective = cp.Minimize(cp.sum(cp.abs(dx - wrapped_dx)**p) + cp.sum(cp.abs(dy - wrapped_dy)**p))
+#     # Constraint to fix the global phase (remove ambiguity).
+#     constraints = [u[0, 0] == wrapped_phase[0, 0]]
     
-    problem = cp.Problem(objective, constraints)
-    problem.solve()
+#     problem = cp.Problem(objective, constraints)
+#     problem.solve()
     
-    return u.value
+#     return u.value
 

@@ -49,14 +49,5 @@ def correlation_pearson(cluster_1, cluster_2):
 
 
 
-# absorption_values = np.arange(0, 101)
-# scattering_values = np.power(np.arange(0, 101), 2)
 
-# fig = plt.figure()
-# ax = fig.subplots()
-
-# ax.plot(absorption_values, scattering_values)
-# confidence_ellipse(absorption_values, scattering_values, ax = ax)
-
-# plt.show()
 

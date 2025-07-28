@@ -2,33 +2,27 @@
 
 import numpy as np
 import skimage.io as io
-
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
-
 import subprocess
 import argparse
 import sys
-from pathlib import Path
 import logging
-import time
+from pathlib import Path
 
 # Path to source
 current_dir = Path(__file__).resolve().parent
-src_dir = current_dir.joinpath("src")
 script_dir = current_dir.joinpath("scripts")
 cache_dir = current_dir.joinpath("cache")
 tmp_dir = current_dir.joinpath("tmp")
+src_dir = current_dir.joinpath("src")
 
-sys.path.insert(0, str(src_dir))
+# Adding source directory to sys.path
+sys.path.append(str(src_dir))
 
+# Importing modules from the source directory
 import spatial_harmonics as spatial_harmonics
 import directories as directories
-import utils
-import export
-import math_utils
 import corrections
-import crop
+import crop_tk
 import angles_correction
 import correcting_stripes
 
@@ -145,9 +139,10 @@ if __name__ == "__main__":
 
         if args.all_2d or args.all_3d:
             if args.all_2d:
-                logger.info("Executing SHI-2D mode")
+                logger.info("Executing SHI processing in 2D mode")
             elif args.all_3d:
-                logger.info("Executing SHI-CT mode")
+                logger.info("Executing SHI processing in CT mode")
+
             measurement_directory = Path.cwd()
             images_path = list((measurement_directory / "sample").iterdir())
             dark_path = measurement_directory / "dark"
@@ -169,7 +164,6 @@ if __name__ == "__main__":
 
             # Before dark field correction, crop the Region Of Interest (ROI)
             output = image_path.stem
-            fig, ax = plt.subplots()
 
             # Select first TIFF file within image directory
             tif_files = list(Path(image_path).glob("*.tif"))
@@ -177,43 +171,23 @@ if __name__ == "__main__":
                 logger.error("No .tif files found in %s", image_path)
                 raise ValueError(f"No .tif files found in {image_path}")
 
-            path_to_crop = tif_files[0]
-            image = io.imread(path_to_crop)
-
             if args.angle_after:
                 path_to_ang = flat_path if flat_path is not None else image_path
                 tif_ang_files = list(Path(path_to_ang).glob("*.tif"))
 
                 if not tif_ang_files:
                     logger.error("No .tif files found for angle correction in %s", path_to_ang)
-                    deg = 0
+                    deg: np.float32 = np.float32(0)
                 else:
                     path_to_angle_correction = tif_ang_files[0]
                     image_angle = io.imread(path_to_angle_correction)
                     cords = angles_correction.extracting_coordinates_of_peaks(image_angle)
-                    deg = angles_correction.calculating_angles_of_peaks_average(cords)
+                    deg: np.float32 = angles_correction.calculating_angles_of_peaks_average(cords)
             else:
-                deg = 0
+                deg: np.float32 = np.float32(0)
 
-            crop_image = crop.cropImage(ax, image, tmp_dir)
-
-            ax_button1 = fig.add_axes([0.8, 0.80, 0.15, 0.03])
-            button_to_pw1 = Button(ax_button1, label="Set ROI")
-            button_to_pw1.on_clicked(lambda event: crop_image.setting_crop())
-
-            ax_button2 = fig.add_axes([0.8, 0.75, 0.15, 0.03])
-            button_to_pw2 = Button(ax_button2, label="Export image + inset")
-            button_to_pw2.on_clicked(lambda event: crop_image.exporting_image_inset())
-
-            plt.show()
-
-            crop_file = tmp_dir / "crop.txt"
-            if not crop_file.exists():
-                logger.error("Crop file not found: %s", crop_file)
-                raise ValueError(f"Crop file not found: {crop_file}")
-            crop_from_tmptxt = np.rint(np.loadtxt(crop_file.as_posix())).astype(int)
-
-            time0 = time.time()
+            path_to_crop = tif_files[0]
+            crop_from_tmptxt = crop_tk.cropImage(path_to_crop)
 
             if dark_path is not None:
                 corrections.correct_darkfield(
@@ -245,82 +219,87 @@ if __name__ == "__main__":
 
             path_to_corrected_images = (Path(image_path) / foldername_to).as_posix()
             path_to_images, path_to_result = directories.create_result_subfolders(
-                directory_for_files=path_to_corrected_images, folders_for_result=output, sample_folder_name=""
+                file_dir=path_to_corrected_images, result_folder=output, sample_folder=""
             )
 
             type_of_contrast = ("absorption", "scattering", "phase", "phasemap")
+
             if flat_path is None:
                 spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, unwrap, False)
-                time1 = time.time()
-                logger.info("Time elapsed: %f", time1 - time0)
+
             else:
                 path_to_corrected_flat = Path(flat_path).joinpath(foldername_to).as_posix()
 
                 path_to_flat, path_to_flat_result = directories.create_result_subfolders(
-                    directory_for_files=path_to_corrected_flat,
-                    folders_for_result=path_to_result.name,
-                    sample_folder_name="flat",
+                    file_dir=path_to_corrected_flat,
+                    result_folder=path_to_result.name,
+                    sample_folder="flat",
                 )
 
                 spatial_harmonics.execute_SHI(path_to_flat, path_to_flat_result, mask_period, unwrap, True)
                 spatial_harmonics.execute_SHI(path_to_images, path_to_result, mask_period, unwrap, False)
-                path_to_result = utils.create_corrections_folder(path_to_result)
+                path_to_result = directories.create_corrections_folder(path_to_result)
 
                 for contrast in type_of_contrast:
-                    path_to_average_flat = math_utils.average_flat_harmonics(path_to_flat_result, type_of_contrast=contrast)
+                    path_to_average_flat = directories.average_flat_harmonics(path_to_flat_result, type_of_contrast=contrast)
                     corrections.correct_flatmask(path_to_result, path_to_average_flat, type_of_contrast=contrast)
 
                 if args.all_2d:
-                    pass
+                    if args.average:
+                        for contrast in type_of_contrast:
+                            path_avg = path_to_result / contrast / "flat_corrections"
+                            logger.info("Averaging contrast: %s", contrast)
+                            directories.averaging(path_avg, contrast)
+                    else:
+                        logger.info("Skipping averaging for 2D mode")
+                        pass
+
                 elif args.all_3d:
-                    commands = ["python", "dir_ct.py", path_to_result.as_posix()]
-                    subprocess.run(commands, cwd=script_dir, capture_output=True, text=True)
+                    for contrast in type_of_contrast:
+                        ct_dir = path_to_result / contrast / "flat_corrections"
+                        logger.info("Organizing contrast: %s", contrast)
+                        directories.organize_dir(ct_dir, contrast)
+
                 else:
                     logger.error("No mode selected (neither all_2d nor all_3d specified)")
                     raise ValueError("No mode selected (neither all_2d nor all_3d specified)")
-                
-                time1 = time.time()
-                logger.info("Time elapsed: %f", time1 - time0)
 
-            if args.average:
-                for contrast in type_of_contrast:
-                    path_avg = path_to_result.joinpath(contrast, "flat_corrections").as_posix()
-                    avg_commands = ["python", "avg.py", "--path", path_avg, "-t", contrast]
-                    logger.info("Running average command: %s", avg_commands)
-                    subprocess.run(avg_commands, cwd=script_dir, capture_output=True, text=True)
 
             if args.export:
                 logger.info("Exporting results to %s", path_to_result)
-                export.export_results(path_to_result)
+                directories.export_results(path_to_result)
 
-    elif args.command == "clean":
-        if args.clear_cache:
-            for content in cache_dir.iterdir():
-                logger.info("Removing cache content: %s", content)
-                subprocess.run(["rm", "-rf", content.as_posix()], check=True)
-        # elif args.clear_extra:
-        #     measurement_directory = Path.cwd()
-        #     for content in measurement_directory.iterdir():
-        #         subprocess.run(["rm", "-rf", content.as_posix()], check=True)
-        else:
-            logger.error("No cleaning option specified (neither --clear-cache nor --clear-extra)")
-            raise ValueError("No cleaning option specified. Use --clear-cache or --clear-extra.")
 
-    elif args.command == "morphostructural":
-        if args.morphostructural:
-            cmd = ["python", "morphos.py", "--select_folder", "--manually"]
-            logger.info("Executing morphostructural analysis with command: %s", cmd)
-            subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True)
-        else:
-            logger.error("Unknown command: %s", args.command)
-            raise ValueError(f"Unknown command: {args.command}")
+    # # --------------------- To be changed
+    # elif args.command == "clean":
+    #     if args.clear_cache:
+    #         for content in cache_dir.iterdir():
+    #             logger.info("Removing cache content: %s", content)
+    #             subprocess.run(["rm", "-rf", content.as_posix()], check=True)
+    #     # elif args.clear_extra:
+    #     #     measurement_directory = Path.cwd()
+    #     #     for content in measurement_directory.iterdir():
+    #     #         subprocess.run(["rm", "-rf", content.as_posix()], check=True)
+    #     else:
+    #         logger.error("No cleaning option specified (neither --clear-cache nor --clear-extra)")
+    #         raise ValueError("No cleaning option specified. Use --clear-cache or --clear-extra.")
 
-    elif args.command == "preprocessing":
-        if args.stripes:
-            current_folder = Path.cwd()
-            correcting_stripes.correcting_stripes(current_folder)
-        else:
-            logger.error("Unknown command: %s", args.command)
-            raise ValueError(f"Unknown command: {args.command}")
+    # elif args.command == "morphostructural":
+    #     if args.morphostructural:
+    #         cmd = ["python", "morphos.py", "--select_folder", "--manually"]
+    #         logger.info("Executing morphostructural analysis with command: %s", cmd)
+    #         subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True)
+    #     else:
+    #         logger.error("Unknown command: %s", args.command)
+    #         raise ValueError(f"Unknown command: {args.command}")
+
+    # elif args.command == "preprocessing":
+    #     if args.stripes:
+    #         current_folder = Path.cwd()
+    #         correcting_stripes.correcting_stripes(current_folder)
+    #     else:
+    #         logger.error("Unknown command: %s", args.command)
+    #         raise ValueError(f"Unknown command: {args.command}")
 
     sys.exit()
+

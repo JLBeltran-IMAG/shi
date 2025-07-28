@@ -382,7 +382,12 @@ def unwrapping_phase_gradient_operator(ratio, label, unwrap_algorithm="skimage")
         return np.unwrap(np.unwrap(wrapped_phase_map_gradient, axis=1), axis=0)
 
 
-def compute_phase_map(inverse_fourier_transform, main_harmonic, unwrap=None, epsilon=1e-12):
+def compute_phase_map(
+    inverse_fourier_transform: np.ndarray,
+    main_harmonic: np.ndarray,
+    unwrap: str | None = None,
+    epsilon: float = 1e-12
+) -> np.ndarray:
     """
     Computes the unwrapped phase map from the inverse Fourier transform and the main harmonic.
 
@@ -408,18 +413,32 @@ def compute_phase_map(inverse_fourier_transform, main_harmonic, unwrap=None, eps
     wrapped_phase = np.angle(ratio)
 
     # Unwrap the phase using the skimage algorithm
-    if unwrap is None: unwrapped_phase_map = unwrap_phase(wrapped_phase, wrap_around=True)
-    elif unwrap == "branch_cut": unwrapped_phase_map = uphase.goldstein_branch_cut_unwrap(wrapped_phase)
-    elif unwrap == "least_squares": unwrapped_phase_map = uphase.ls_unwrap_phase(wrapped_phase)
-    elif unwrap == "quality_guided": unwrapped_phase_map = uphase.quality_guided_unwrap(wrapped_phase)
-    elif unwrap == "min_lp": unwrapped_phase_map = uphase.min_lp_unwrap(wrapped_phase)
+    if unwrap is None:
+        unwrapped_phase_map = unwrap_phase(wrapped_phase, wrap_around=True)
+
+    elif unwrap == "branch_cut":
+        unwrapped_phase_map = uphase.goldstein_branch_cut_unwrap(wrapped_phase)
+
+    elif unwrap == "least_squares":
+        unwrapped_phase_map = uphase.ls_unwrap_phase(wrapped_phase)
+
+    elif unwrap == "quality_guided":
+        unwrapped_phase_map = uphase.quality_guided_unwrap(wrapped_phase)
+
+    # elif unwrap == "min_lp":
+    #     unwrapped_phase_map = uphase.min_lp_unwrap(wrapped_phase)
+
     else:
         raise ValueError("Unknown phase unwrapping algorithm")
 
     return unwrapped_phase_map
 
 
-def compute_scattering(inverse_fourier_transform, main_harmonic, epsilon=1e-12):
+def compute_scattering(
+    inverse_fourier_transform: np.ndarray,
+    main_harmonic: np.ndarray,
+    epsilon: float = 1e-12
+) -> np.ndarray:
     """
     Computes the scattering value from the inverse Fourier transform and the main harmonic.
 
@@ -506,7 +525,13 @@ def differential_phase_contrast(image_main_harmonic, label, diff_operator="sobel
         raise ValueError(f"Unknown label for differential phase contrast: {label}")
 
 
-def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmonic=None, unwrap=None, eps=1e-12):
+def contrast_retrieval_individual_members(
+    harmonic: np.ndarray,
+    type_of_contrast: str,
+    main_harmonic: np.ndarray = np.array([None, None, None, None]),
+    unwrap: str | None = None,
+    eps: float = 1e-12
+) -> np.ndarray:
     """
     Retrieves individual contrast members from a harmonic component.
 
@@ -522,7 +547,7 @@ def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmo
         - 'absorption': Computes absorption contrast
         - 'scattering': Computes scattering contrast
         - 'phasemap': Computes phase map contrast
-    label : any, optional
+    label : optional
         Label used for phase unwrapping when type_of_contrast is 'phasemap'.
     eps : float, optional
         Small constant to avoid division by zero. Default is 1e-12.
@@ -547,10 +572,13 @@ def contrast_retrieval_individual_members(harmonic, type_of_contrast, main_harmo
 
     if type_of_contrast == "absorption":
         return np.log(1 / abs_ifft)
+
     elif type_of_contrast == "scattering":
         return compute_scattering(ifft_harmonic, main_harmonic)
+
     elif type_of_contrast == "phasemap":
         return compute_phase_map(ifft_harmonic, main_harmonic, unwrap)
+
     else:
         # Raise an error if the provided type_of_contrast is not recognized.
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")

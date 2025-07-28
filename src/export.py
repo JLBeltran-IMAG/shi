@@ -4,40 +4,6 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import tifffile as ti
 from skimage import exposure
 
-from pathlib import Path
-import shutil
-import itertools
-
-
-
-def export_results(path):
-    """
-    Export all TIFF files found in the 'absorption', 'scattering', 'phase', and 'phasemap'
-    directories (within the 'flat_corrections/average' structure) to a 'results' directory
-    located in the given base path.
-
-    Parameters:
-        path (Path): The base directory where the files are located and where the 'results'
-                     directory will be created.
-    """
-    # Create the destination directory for the results if it doesn't exist
-    destination_directory = path / "results"
-    destination_directory.mkdir(parents=True, exist_ok=True)
-
-    # Define the categories to search for TIFF files
-    categories = ["absorption", "scattering", "phase", "phasemap"]
-
-    # Create an iterator that chains together all .tif files found in each category's
-    # 'flat_corrections/average' subdirectory
-    file_paths = itertools.chain(
-        *( (path / category / "flat_corrections" / "average").glob("*.tif") for category in categories )
-    )
-
-    # Copy each file to the destination directory
-    for file_path in file_paths:
-        shutil.copy2(file_path, destination_directory)
-        print(f"Copied: {file_path} -> {destination_directory}")
-
 
 def graphing_absorption(path, colormap = "gray"):
     path_to_absorption = path.joinpath("absorption_avg.tif")

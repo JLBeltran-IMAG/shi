@@ -139,9 +139,6 @@ class distributions_functions:
 	def genpareto(self, x, c, loc = 0, scale = 1):
 		return stats.genpareto.pdf(x, c, loc, scale)
 
-	def gilbrat(self, x, loc = 0, scale = 1):
-		return stats.gilbrat.pdf(x, loc, scale)
-
 	def gompertz(self, x, c, loc = 0, scale = 1):
 		return stats.gompertz.pdf(x, c, loc, scale)
 

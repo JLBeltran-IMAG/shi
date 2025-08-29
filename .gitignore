@@ -85,3 +85,5 @@ processed_images/
 temp_crops/
 CLAUDE.md
 CLAUDE.local.md
+testdata
+cache

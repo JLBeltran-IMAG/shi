@@ -67,6 +67,10 @@ docs/_templates/
 *.local.md
 .env
 
+# Claude-related files (user-specific configuration)
+.claude/
+CLAUDE.local.md
+
 # Log files
 *.log
 

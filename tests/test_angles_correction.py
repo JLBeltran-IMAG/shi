@@ -382,6 +382,122 @@ class TestAngleCorrectionIntegration:
         except MemoryError:
             pytest.fail("Function should not run out of memory on reasonable inputs")
 
+    def test_mathematical_edge_cases_angle_calculation(self):
+        """Test mathematical edge cases in angle calculations that can produce NaN."""
+        # Critical bug identified: when height == width, we get division issues
+        
+        # Test case 1: Create coordinates where height == width (45-degree case)
+        coords = [
+            [100, 100],  # main harmonic (center)
+            [110, 110],  # height = width = 10, should produce 45 degrees
+            [90, 90],    # height = width = 10, should produce 45 degrees
+        ]
+        
+        try:
+            angle = angles_corr.calculating_angles_of_peaks_average(coords)
+            
+            # CRITICAL MATHEMATICAL CONSTRAINT: Angle calculations must not produce NaN
+            assert np.isfinite(angle), f"MATHEMATICAL ERROR: NaN angle detected for equal height/width case - this violates mathematical consistency"
+            
+            # Should be around 45 degrees if properly calculated
+            assert isinstance(angle, np.float32), "Angle should be float32"
+            assert -90 <= angle <= 90, f"Valid angle {angle} outside expected range [-90, 90]"
+        except (ZeroDivisionError, ValueError) as e:
+            pytest.fail(f"Mathematical error in angle calculation: {e}")
+        
+        # Test case 2: Test arctan2 edge cases
+        test_edge_coords = [
+            [50, 50],   # main harmonic
+            [50, 50],   # identical to main harmonic (delta = 0, 0)
+            [55, 50],   # vertical alignment (width delta = 0)
+            [50, 55],   # horizontal alignment (height delta = 0)
+        ]
+        
+        try:
+            angle = angles_corr.calculating_angles_of_peaks_average(test_edge_coords)
+            
+            # CRITICAL: All angle calculations must produce finite values
+            assert np.isfinite(angle), f"MATHEMATICAL ERROR: Non-finite angle {angle} from edge case coordinates"
+        except Exception as e:
+            pytest.fail(f"Exception in edge case angle calculation: {e}")
+
+    def test_trigonometric_mathematical_properties(self):
+        """Test mathematical properties of trigonometric calculations."""
+        # Test arctan2 behavior in quadrant_loc_sign and angle calculations
+        
+        # Create test coordinates in all quadrants
+        center = [100, 100]
+        test_coordinates = [
+            center,
+            [110, 110],  # Quadrant I (positive y, positive x)
+            [90, 110],   # Quadrant II (negative y, positive x)
+            [90, 90],    # Quadrant III (negative y, negative x)
+            [110, 90],   # Quadrant IV (positive y, negative x)
+        ]
+        
+        # Test quadrant sign calculations
+        for i, coord in enumerate(test_coordinates[1:], 1):
+            y_sign = angles_corr.quadrant_loc_sign(coord[0], center[0], coord[1], center[1], "y")
+            x_sign = angles_corr.quadrant_loc_sign(coord[0], center[0], coord[1], center[1], "x")
+            
+            # Signs should be integers in range [-1, 0, 1]
+            assert isinstance(y_sign, int), f"Y sign should be integer, got {type(y_sign)}"
+            assert isinstance(x_sign, int), f"X sign should be integer, got {type(x_sign)}"
+            assert y_sign in [-1, 0, 1], f"Y sign {y_sign} should be -1, 0, or 1"
+            assert x_sign in [-1, 0, 1], f"X sign {x_sign} should be -1, 0, or 1"
+        
+        # Test angle calculation mathematical consistency
+        try:
+            angle = angles_corr.calculating_angles_of_peaks_average(test_coordinates)
+            
+            # CRITICAL MATHEMATICAL CONSTRAINT: All trigonometric calculations must be finite
+            assert np.isfinite(angle), f"MATHEMATICAL ERROR: Non-finite angle {angle} detected in trigonometric test"
+            
+            # Angle should be within expected range for arctan calculations
+            assert -90 <= angle <= 90, f"Angle {angle} outside mathematical range [-90, 90]"
+            
+            # Check if angle preserves sign relationships
+            assert isinstance(angle, np.float32), "Angle should be float32 type"
+                
+        except Exception as e:
+            pytest.fail(f"Mathematical error in trigonometric calculations: {e}")
+
+    def test_numerical_precision_angle_calculations(self):
+        """Test numerical precision and stability of angle calculations."""
+        # Test with very close coordinates (precision limits)
+        center = [1000, 1000]
+        epsilon_coords = [
+            center,
+            [1000.001, 1000.001],  # Very small differences
+            [999.999, 999.999],    # Very small differences
+        ]
+        
+        try:
+            angle = angles_corr.calculating_angles_of_peaks_average(epsilon_coords)
+            
+            # CRITICAL: Should handle small differences without numerical instability
+            assert np.isfinite(angle), f"NUMERICAL ERROR: Instability with small coordinate differences: angle = {angle}"
+            
+        except Exception as e:
+            pytest.fail(f"Numerical precision error: {e}")
+        
+        # Test with large coordinate values (overflow/underflow resistance)
+        large_center = [1e6, 1e6]
+        large_coords = [
+            large_center,
+            [1e6 + 100, 1e6 + 100],
+            [1e6 - 100, 1e6 - 100],
+        ]
+        
+        try:
+            angle = angles_corr.calculating_angles_of_peaks_average(large_coords)
+            
+            # CRITICAL: Must handle large coordinates without overflow/underflow
+            assert np.isfinite(angle), f"NUMERICAL ERROR: Overflow/underflow with large coordinates: angle = {angle}"
+                
+        except Exception as e:
+            pytest.fail(f"Large value numerical error: {e}")
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

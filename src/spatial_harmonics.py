@@ -10,9 +10,9 @@ from tifffile import imread
 import unwrapping_phase as uphase
 
 
-# Define the directory for temporary files using pathlib
-tmp_files = Path(__file__).resolve().parents[1] / "tmp"
-tmp_files.mkdir(parents=True, exist_ok=True)  # Crea la carpeta si no existe
+# Define the default directory for temporary files using pathlib
+# This can be overridden by passing a temp_dir parameter to functions
+_default_tmp_files = Path(__file__).resolve().parents[1] / "tmp"
 
 
 def squared_fast_fourier_transform_linear_and_logarithmic(image, grid_period_projected, logarithmic_spectrum=False):
@@ -237,7 +237,7 @@ def identifying_harmonic(main_harmonic_height, main_harmonic_width, harmonic_hei
         return identifying_harmonics_x1y1_higher_orders(dx, dy)
 
 
-def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wavevector_kx, flat, limit_band=0.5):
+def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wavevector_kx, flat, limit_band=0.5, temp_dir=None):
     """
     Extracts spatial harmonics from a Fourier transform and either saves (if flat=True)
     or loads (if flat=False) the extraction limits to/from a pickle file.
@@ -254,6 +254,8 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
         If True, perform extraction and save the limits; if False, load the harmonic limits from file.
     limit_band : float, optional
         Band limit parameter to define the region for harmonics (default is 0.5).
+    temp_dir : Path, optional
+        Directory for temporary files. If None, uses default temp directory.
 
     Returns
     -------
@@ -264,6 +266,12 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
             labels : list of str
                 The labels associated with each harmonic.
     """
+    # Use provided temp_dir or default
+    if temp_dir is None:
+        temp_dir = _default_tmp_files
+    temp_dir = Path(temp_dir)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
     # Create a copy of the Fourier transform to avoid modifying the original.
     copy_of_fourier_transform = np.copy(fourier_transform)
 
@@ -306,7 +314,7 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
             zero_fft_region(copy_of_fourier_transform, top, bottom, left, right)
 
         # Save the harmonic extraction limits to a pickle file.
-        pickle_path = tmp_files / "harmonics.pkl"
+        pickle_path = temp_dir / "harmonics.pkl"
         try:
             with open(pickle_path, "wb") as harmonics_file:
                 pickle.dump(export, harmonics_file)
@@ -318,7 +326,7 @@ def spatial_harmonics_of_fourier_spectrum(fourier_transform, wavevector_ky, wave
     else:
         harmonics = []
         labels = []
-        pickle_path = tmp_files / "harmonics.pkl"
+        pickle_path = temp_dir / "harmonics.pkl"
         try:
             with open(pickle_path, "rb") as harmonics_file:
                 data = pickle.load(harmonics_file)
@@ -584,7 +592,7 @@ def contrast_retrieval_individual_members(
         raise ValueError(f"Unknown type_of_contrast: {type_of_contrast}")
 
 
-def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat):
+def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat, temp_dir=None):
     """
     Execute spatial harmonics analysis on a set of images.
 
@@ -598,6 +606,12 @@ def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat):
         The path to the directory where the results will be exported.
     mask_period : int
         The period of the mask used in the analysis.
+    unwrap : str or None
+        The unwrapping algorithm to use.
+    flat : bool
+        Whether processing flat field images.
+    temp_dir : Path, optional
+        Directory for temporary files. If None, uses default temp directory.
 
     """
     for path in path_to_images:
@@ -607,7 +621,7 @@ def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat):
             img, mask_period
         )
         harmonics, labels = spatial_harmonics_of_fourier_spectrum(
-            fft_img, wavevector_ky, wavevector_kx, flat
+            fft_img, wavevector_ky, wavevector_kx, flat, temp_dir=temp_dir
         )
 
         main_harmonic = harmonics[0]

@@ -1,0 +1,93 @@
+.command-selector {
+  margin-bottom: 2rem;
+}
+
+.command-selector h2 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.command-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.command-tab {
+  background: white;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.command-tab:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.command-tab.active {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.command-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #007bff;
+  margin-bottom: 0.5rem;
+  text-transform: capitalize;
+}
+
+.command-description {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.command-help {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.command-help h3 {
+  color: #495057;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  text-transform: capitalize;
+}
+
+.command-help p {
+  color: #6c757d;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.cli-equivalent {
+  background: #2d3748;
+  color: #e2e8f0;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.cli-equivalent strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.cli-equivalent code {
+  background: transparent;
+  color: #68d391;
+  font-size: 1rem;
+}

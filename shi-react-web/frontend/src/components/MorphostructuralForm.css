@@ -1,0 +1,36 @@
+.morphostructural-form {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.morphostructural-form h3 {
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.command-info {
+  background: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.command-info h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #0066cc;
+}
+
+.command-info p {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.command-info p:last-child {
+  margin-bottom: 0;
+}

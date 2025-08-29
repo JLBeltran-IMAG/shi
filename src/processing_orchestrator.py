@@ -141,21 +141,23 @@ class SHIProcessingOrchestrator:
                 batch_context.output_base_path
             )
             
-            # Execute spatial harmonics analysis
-            self._execute_spatial_harmonics(
-                context,
-                path_to_images,
-                path_to_result,
-                batch_context.temp_directory
-            )
-            
             # Apply flat field corrections if available
+            # This must happen BEFORE sample processing to create harmonics.pkl
             if context.flat_path is not None:
                 self._apply_flat_corrections(
                     context,
                     path_to_result,
                     foldername_to,
                     batch_context
+                )
+            else:
+                # Execute spatial harmonics analysis without flat correction
+                self._execute_spatial_harmonics(
+                    context,
+                    path_to_images,
+                    path_to_result,
+                    batch_context.temp_directory,
+                    is_flat=False
                 )
             
             # Post-processing based on mode
@@ -322,7 +324,8 @@ class SHIProcessingOrchestrator:
         context: SHIMeasurementContext,
         path_to_images: List[Path],
         path_to_result: Path,
-        temp_directory: Path
+        temp_directory: Path,
+        is_flat: bool = False
     ) -> None:
         """Execute spatial harmonics analysis.
         
@@ -331,8 +334,9 @@ class SHIProcessingOrchestrator:
             path_to_images: List of image paths
             path_to_result: Output directory
             temp_directory: Temporary directory for processing
+            is_flat: Whether processing flat field images
         """
-        self.logger.info("Executing spatial harmonics analysis")
+        self.logger.info("Executing spatial harmonics analysis (flat=%s)", is_flat)
         
         # Pass temp_directory to spatial harmonics
         spatial_harmonics.execute_SHI(
@@ -340,7 +344,7 @@ class SHIProcessingOrchestrator:
             path_to_result,
             context.mask_period,
             context.unwrap_phase,
-            False,  # is_flat parameter
+            is_flat,
             temp_dir=temp_directory
         )
     
@@ -371,13 +375,24 @@ class SHIProcessingOrchestrator:
         for subdir in ["absorption", "scattering", "phase", "phasemap"]:
             (path_to_flat_result / subdir).mkdir(parents=True, exist_ok=True)
         
-        # Process flat field
+        # Process flat field FIRST (creates harmonics.pkl)
         spatial_harmonics.execute_SHI(
             path_to_flat,
             path_to_flat_result,
             context.mask_period,
             context.unwrap_phase,
-            True,  # is_flat parameter
+            True,  # is_flat parameter - creates harmonics.pkl
+            temp_dir=batch_context.temp_directory
+        )
+        
+        # Now process sample images (reads harmonics.pkl)
+        path_to_images = list((context.images_path / foldername_to).glob("*.tif"))
+        spatial_harmonics.execute_SHI(
+            path_to_images,
+            path_to_result,
+            context.mask_period,
+            context.unwrap_phase,
+            False,  # is_flat parameter - reads harmonics.pkl
             temp_dir=batch_context.temp_directory
         )
         

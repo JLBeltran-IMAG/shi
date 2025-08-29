@@ -12,8 +12,13 @@
 - [Installation](#installation)
   - [Installing Anaconda](#installing-anaconda)
   - [Installing ImageJ](#installing-imagej)
+  - [Installing SHI](#installing-shi)
+- [Web Interface](#web-interface)
+  - [Quick Start](#quick-start-web)
+  - [Features](#features)
 - [Using the Software](#using-the-software)
-  - [Running from USB](#running-from-usb)
+  - [Command Line Usage](#command-line-usage)
+  - [Web Interface Usage](#web-interface-usage)
   - [Testing Examples](#testing-examples)
   - [Running Real Experiments](#running-real-experiments)
 - [Advanced Features](#advanced-features)
@@ -28,11 +33,13 @@
 
 ## System Requirements
 
-- **Operating System:** Linux (Ubuntu, CentOS, etc.)
+- **Operating System:** Linux (Ubuntu, CentOS, etc.), macOS, Windows (via WSL or Anaconda)
+- **Python:** 3.7 or higher (recommended: 3.9+)
 - **Hardware Requirements:**
-  - **Processor:** At least 2 GHz
-  - **RAM:** Minimum 4 GB (8 GB or higher recommended for optimal performance)
+  - **Processor:** At least 2 GHz (multi-core recommended for faster processing)
+  - **RAM:** Minimum 8 GB (16 GB or higher recommended for large datasets)
   - **Disk Space:** At least 20 GB of free disk space for installation and data storage
+- **Dependencies:** ImageJ (for visualization), Anaconda or pip for Python package management
 
 ---
 
@@ -98,37 +105,127 @@ ImageJ is a widely used image processing software that complements SHI functiona
 
 ### Installing SHI
 
-The SHI: Spatial Harmonic Imaging software can be provided on a USB stick. You can run it directly from the USB stick without formal installation or copy the `shi` folder to any directory on your computer.
+#### Option 1: System Installation (Recommended)
 
-For installing the software, run on your terminal
+Clone or download the SHI repository and install it globally:
 
 ```bash
+# Clone the repository (or download and extract)
+git clone <repository-url>
+cd shi
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install SHI as a system-wide CLI tool
 ./install.sh
+
+# Verify installation
+shi test
 ```
 
-If you are using a USB stick, don't remove the usb-device while running the software 
+#### Option 2: Development Installation
 
-## Running SHI
+For development or if you want to modify the source code:
 
-1. Open a terminal and navigate to the directory containing the data to proccess.
+```bash
+# Install in development mode
+pip install -e .
 
-2. Run on the terminal:
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run tests
+pytest -v
+```
+
+#### Option 3: Web Interface Only
+
+If you only want to use the web interface:
+
+```bash
+# Install backend dependencies
+cd shi-react-web/backend
+pip install -r requirements.txt
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
+
+**Note:** If using a USB distribution, don't remove the device while running the software. 
+
+## Using the Software
+
+SHI can be used in two ways:
+1. **Command Line Interface (CLI)** - For expert users and automated workflows
+2. **Web Interface** - For easy-to-use graphical interaction
+
+### Command Line Usage
+
+1. Open a terminal and navigate to the directory containing your data.
+
+2. Run one of the main commands:
    
    ```bash
-   shi ...(instructions)
+   # Basic SHI processing
+   shi calculate -m <mask_period> --all-2d
+   
+   # With specific image paths
+   shi calculate -m <mask_period> -i <images> -f <flat> -d <dark> -b <bright>
+   
+   # Additional processing options
+   shi morphostructural --morphostructural
+   shi preprocessing --stripes
+   shi clean --clear-cache
    ```
 
 3. After execution, check the folder `Documents/CXI/CXI-DATA-ANALYSIS` for the results.
 
+### Web Interface Usage
+
+1. Start the web application:
+   ```bash
+   # Start backend
+   cd shi-react-web/backend
+   python main.py
+   
+   # Start frontend (new terminal)
+   cd shi-react-web/frontend
+   npm start
+   ```
+
+2. Open http://localhost:3000 in your browser
+3. Upload TIFF files and configure processing options through the web interface
+4. Monitor processing progress and download results
+
 ### Testing Examples
 
-After installing and ensuring that Anaconda and ImageJ work correctly, test the software functionality by running (missing test):
+After installing and ensuring that Anaconda and ImageJ work correctly, test the software functionality:
 
+**CLI Testing:**
 ```bash
+# Test installation
 shi test
+
+# Run complete test suite
+pytest -v
+
+# Run specific tests
+pytest tests/test_spatial_harmonics_math.py
 ```
 
-This verifies that the system processes the test data and produces the expected outputs.
+**Web Interface Testing:**
+```bash
+# Test backend API
+cd shi-react-web/backend && python main.py
+# Visit http://localhost:8000/docs for API documentation
+
+# Test frontend
+cd shi-react-web/frontend && npm test
+```
+
+These verify that the system processes test data and produces expected outputs.
 
 ### Running Real Experiments
 
@@ -148,45 +245,84 @@ The results will be saved in `Documents/CXI/CXI-DATA-ANALYSIS/foldername`.
 
 The SHI software includes additional tools for advanced data processing, each implemented as separate scripts:
 
-### Scattering and Absorption Analysis Tool
+### Morphostructural Analysis Tool
 
 Analyzes structural characteristics based on scattering and absorption data.
 
-- Run:
-  
-  ```bash
-  shi morphostructural --morphostructural
-  ```
+**CLI Usage:**
+```bash
+shi morphostructural --morphostructural
+```
+When prompted, select the two files corresponding to the absorption and scattering images.
 
-- When prompted, select the two files corresponding to the absorption and scattering images.
+**Web Interface:** Select "morphostructural" command and upload your analysis files through the web interface.
 
-### Line Profile Plot Tool
 
-Generates line profile plots to enhance image details.
+### Preprocessing and Stripe Correction
 
-- Run:
-  
-  ```bash
-  python plot_profile.py
-  ```
+Corrects detector stripes and performs angle alignment corrections.
 
-- Select the image file to analyze when prompted.
+**CLI Usage:**
+```bash
+# Correct detector stripes
+shi preprocessing --stripes
 
-### Detector Stripes Correction Tool
+# Or use the dedicated script
+python src/correcting_stripes.py
+```
 
-Corrects detector stripes that might introduce false features in the final images.
+**Web Interface:** Select "preprocessing" command, enable "Correct Stripes", and upload your raw data.
 
-1. Run:
-   
+A subfolder named `corrected_images` will be created containing the processed images.
+
+---
+
+## Web Interface
+
+SHI includes a modern web application that provides the same functionality as the CLI tool through an intuitive graphical interface.
+
+### Quick Start (Web) {#quick-start-web}
+
+1. **Start the Backend:**
    ```bash
-   python correcting_stripes.py
+   cd shi-react-web/backend
+   pip install -r requirements.txt
+   python main.py
    ```
+   Backend runs on: http://localhost:8000
 
-2. Select the folder containing all raw experimental data (input images, dark images, and flat images).
+2. **Start the Frontend:**
+   ```bash
+   cd shi-react-web/frontend
+   npm install
+   npm start
+   ```
+   Frontend runs on: http://localhost:3000
 
-3. A subfolder named `no stripe` will be created in each subfolder of the selected directory.
+3. **Use the Application:**
+   - Open http://localhost:3000 in your browser
+   - Select a command (calculate, morphostructural, preprocessing, clean)
+   - Upload your TIFF files using drag-and-drop
+   - Configure processing options through the web forms
+   - Submit and monitor progress in real-time
+   - Download results when complete
 
-4. Update the configuration file (`experiment_config.txt`) with the path to the new folder containing the corrected images.
+### Features
+
+- **Complete CLI Equivalence:** All shi.py commands available through web interface
+- **Drag-and-Drop File Upload:** Automatic file categorization (sample, dark, flat, bright)
+- **Real-time Progress Monitoring:** Live updates during processing
+- **Job Management:** View, monitor, download, and delete processing jobs
+- **Modern Interface:** Responsive design that works on desktop and mobile
+- **Background Processing:** Long-running operations don't block the interface
+- **Error Handling:** Clear error messages and validation
+
+### API Access
+
+The backend provides a complete REST API for programmatic access:
+- API documentation: http://localhost:8000/docs (when backend is running)
+- All CLI functionality accessible via HTTP endpoints
+- JSON-based communication for easy integration
 
 ---
 

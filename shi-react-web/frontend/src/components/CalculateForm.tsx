@@ -41,7 +41,7 @@ const CalculateForm: React.FC<CalculateFormProps> = ({ onJobCreated }) => {
       category: "sample" as keyof typeof fileCategories,
       description: "Upload your main experimental TIFF images",
       required: true,
-      help: "These are the primary images containing your experimental data that will be processed by the SHI method."
+      help: "Primary experimental images containing your data for spatial harmonic analysis."
     },
     {
       title: "Dark Images",
@@ -263,7 +263,7 @@ const CalculateForm: React.FC<CalculateFormProps> = ({ onJobCreated }) => {
     <div className="calculate-form">
       <h3>Calculate Command</h3>
       <p className="form-description">
-        Executes the SHI method. Equivalent to <code>shi calculate</code>
+        Execute spatial harmonic analysis. Equivalent to <code>shi calculate</code>
       </p>
 
       <form onSubmit={startROISelection}>

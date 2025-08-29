@@ -83,7 +83,7 @@ function App() {
     return (
       <div className="App">
         <header className="App-header">
-          <h1>🔬 SHI - Spatial Harmonic Imaging</h1>
+          <h1>Spatial Harmonic Imaging</h1>
           <p>Loading...</p>
         </header>
       </div>
@@ -93,29 +93,42 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🔬 SHI - Spatial Harmonic Imaging</h1>
-        <p>Web interface for spatial harmonic imaging processing</p>
+        <div className="container">
+          <div className="brand">
+            <span className="brand-icon">🔬</span>
+            <div>
+              <h1>Spatial Harmonic Imaging</h1>
+              <div className="subtitle">Multi-contrast X-ray analysis platform</div>
+            </div>
+          </div>
+        </div>
       </header>
 
       <main className="App-main">
-        <div className="command-section">
-          <CommandSelector 
-            commands={commands}
-            selectedCommand={selectedCommand}
-            onCommandSelect={setSelectedCommand}
-          />
-          
-          <div className="command-form">
-            {renderCommandForm()}
+        <div className="main-layout">
+          <div className="content-panel">
+            <div className="section">
+              <div className="section-header">
+                <CommandSelector 
+                  commands={commands}
+                  selectedCommand={selectedCommand}
+                  onCommandSelect={setSelectedCommand}
+                />
+              </div>
+              
+              <div className="section-content">
+                {renderCommandForm()}
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="jobs-section">
-          <JobMonitor 
-            jobs={jobs}
-            onJobDeleted={handleJobDeleted}
-            onDownload={handleDownload}
-          />
+          
+          <div className="sidebar-panel">
+            <JobMonitor 
+              jobs={jobs}
+              onJobDeleted={handleJobDeleted}
+              onDownload={handleDownload}
+            />
+          </div>
         </div>
       </main>
     </div>

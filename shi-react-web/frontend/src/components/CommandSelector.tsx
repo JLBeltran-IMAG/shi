@@ -15,7 +15,11 @@ const CommandSelector: React.FC<CommandSelectorProps> = ({
 }) => {
   return (
     <div className="command-selector">
-      <h2>Available Commands</h2>
+      <div className="selector-header">
+        <h2 className="section-title">Processing Commands</h2>
+        <p className="section-subtitle">Select an operation to configure</p>
+      </div>
+      
       <div className="command-tabs">
         {commands.map((command) => (
           <button
@@ -23,25 +27,13 @@ const CommandSelector: React.FC<CommandSelectorProps> = ({
             className={`command-tab ${selectedCommand === command.name ? 'active' : ''}`}
             onClick={() => onCommandSelect(command.name)}
           >
-            <div className="command-name">{command.name}</div>
-            <div className="command-description">{command.description}</div>
+            <div className="tab-content">
+              <div className="command-name">{command.name}</div>
+              <div className="command-description">{command.description}</div>
+            </div>
           </button>
         ))}
       </div>
-      
-      {selectedCommand && (
-        <div className="command-help">
-          <h3>Command: {selectedCommand}</h3>
-          <p>
-            {commands.find(cmd => cmd.name === selectedCommand)?.description}
-          </p>
-          
-          <div className="cli-equivalent">
-            <strong>CLI Equivalent:</strong>
-            <code>shi {selectedCommand}</code>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

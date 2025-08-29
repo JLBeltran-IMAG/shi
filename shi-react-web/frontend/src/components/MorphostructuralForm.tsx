@@ -141,7 +141,7 @@ const MorphostructuralForm: React.FC<MorphostructuralFormProps> = ({ onJobCreate
           in the uploaded images to provide insights into the morphological structure.
         </p>
         <p>
-          <strong>Expected Input:</strong> Processed absorption and scattering images from SHI analysis.
+          <strong>Expected Input:</strong> Processed absorption and scattering images from spatial harmonic analysis.
         </p>
       </div>
     </div>

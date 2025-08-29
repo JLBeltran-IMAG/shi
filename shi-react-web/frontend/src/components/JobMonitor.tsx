@@ -63,7 +63,10 @@ const JobMonitor: React.FC<JobMonitorProps> = ({ jobs, onJobDeleted, onDownload 
 
   return (
     <div className="job-monitor">
-      <h2>Processing Jobs ({jobs.length})</h2>
+      <div className="jobs-header">
+        <h2>Processing Jobs</h2>
+        <span className="jobs-count">{jobs.length}</span>
+      </div>
       
       <div className="jobs-list">
         {jobs.map((job) => (

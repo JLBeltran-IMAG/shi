@@ -110,25 +110,63 @@ If you are using a USB stick, don't remove the usb-device while running the soft
 
 ## Running SHI
 
-1. Open a terminal and navigate to the directory containing the data to proccess.
+The software provides two main command-line tools:
 
-2. Run on the terminal:
-   
-   ```bash
-   shi ...(instructions)
-   ```
+1. `shi.py` - Main tool for SHI processing
+2. `morphos.py` - Tool for morphostructural analysis
 
-3. After execution, check the folder `Documents/CXI/CXI-DATA-ANALYSIS` for the results.
+### SHI Processing
 
-### Testing Examples
-
-After installing and ensuring that Anaconda and ImageJ work correctly, test the software functionality by running (missing test):
+To see all available options for SHI processing:
 
 ```bash
-shi test
+./shi.py calculate --help
 ```
 
-This verifies that the system processes the test data and produces the expected outputs.
+Basic usage with automatic mode (2D):
+```bash
+./shi.py calculate -m MASK_PERIOD --all-2d
+```
+
+Basic usage with automatic mode (3D):
+```bash
+./shi.py calculate -m MASK_PERIOD --all-3d
+```
+
+To clean up temporary files:
+```bash
+./shi.py clean --extra
+```
+
+### Morphostructural Analysis
+
+The morphostructural analysis tool provides two main commands:
+
+1. `analyze`: Run the morphostructural analysis
+```bash
+./morphos.py analyze --left path/to/absorption.tif --right path/to/scattering.tif --contrast linear
+```
+
+Arguments for analyze:
+- `--left`: Path to the absorption image
+- `--right`: Path to the scattering/phase image
+- `--contrast`: Contrast type (linear or log)
+
+2. `clean`: Clean temporary and annotation files
+```bash
+# Clean temporary files
+./morphos.py clean --temp
+
+# Clean annotation files
+./morphos.py clean --annotations
+
+# Clean both
+./morphos.py clean --temp --annotations
+```
+
+Arguments for clean:
+- `--temp`: Clean temporary files from analysis
+- `--annotations`: Clean saved annotation files
 
 ### Running Real Experiments
 
@@ -148,45 +186,31 @@ The results will be saved in `Documents/CXI/CXI-DATA-ANALYSIS/foldername`.
 
 The SHI software includes additional tools for advanced data processing, each implemented as separate scripts:
 
-### Scattering and Absorption Analysis Tool
+### Morphostructural Analysis
 
-Analyzes structural characteristics based on scattering and absorption data.
+The morphostructural analysis tool (`morphos.py`) provides interactive visualization and analysis of absorption and scattering data:
 
-- Run:
-  
-  ```bash
-  shi morphostructural --morphostructural
-  ```
-
-- When prompted, select the two files corresponding to the absorption and scattering images.
+- Synchronized image viewing
+- ROI selection and analysis
+- Statistical analysis of selected regions
+- Correlation plots between absorption and scattering
 
 ### Line Profile Plot Tool
 
-Generates line profile plots to enhance image details.
-
-- Run:
-  
-  ```bash
-  python plot_profile.py
-  ```
-
-- Select the image file to analyze when prompted.
+Available through the morphostructural analysis interface, allows for detailed analysis of intensity profiles across your images.
 
 ### Detector Stripes Correction Tool
 
-Corrects detector stripes that might introduce false features in the final images.
+To correct detector stripes that might introduce false features in the final images:
 
 1. Run:
-   
    ```bash
-   python correcting_stripes.py
+   ./shi.py preprocessing --stripes
    ```
 
 2. Select the folder containing all raw experimental data (input images, dark images, and flat images).
 
 3. A subfolder named `no stripe` will be created in each subfolder of the selected directory.
-
-4. Update the configuration file (`experiment_config.txt`) with the path to the new folder containing the corrected images.
 
 ---
 

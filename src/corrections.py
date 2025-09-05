@@ -4,8 +4,8 @@ from tifffile import imread, imwrite
 from pathlib import Path
 from itertools import chain
 import logging
-import utils
-import angles_correction
+from . import utils
+from . import angles_correction
 
 
 def crop_without_corrections(

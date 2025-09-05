@@ -3,11 +3,20 @@ import argparse
 import sys
 from pathlib import Path
 
-from .config import config
-from .processor import SHIProcessor
-from .cleaner import Cleaner
-from .logging import logger
-from .exceptions import SHIError
+try:
+    # Try relative imports first (when installed as package)
+    from .config import config
+    from .processor import SHIProcessor
+    from .cleaner import Cleaner
+    from .logging import logger
+    from .exceptions import SHIError
+except ImportError:
+    # Fall back to absolute imports (when running as script)
+    from src.shi_core.config import config
+    from src.shi_core.processor import SHIProcessor
+    from src.shi_core.cleaner import Cleaner
+    from src.shi_core.logging import logger
+    from src.shi_core.exceptions import SHIError
 
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""

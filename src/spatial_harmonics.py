@@ -5,9 +5,9 @@ from skimage.filters import sobel_h, sobel_v
 import pickle
 from pathlib import Path
 
-import directories
+from . import directories
 from tifffile import imread
-import unwrapping_phase as uphase
+from . import unwrapping_phase as uphase
 
 
 # Define the directory for temporary files using pathlib

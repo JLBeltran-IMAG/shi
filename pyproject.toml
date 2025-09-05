@@ -1,0 +1,83 @@
+[project]
+name = "shi"
+version = "0.1.0"
+description = "Spatial Harmonic Imaging CLI for multi-contrast X-ray analysis"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Jorge Luis Beltran Diaz"},
+    {name = "Danays Kunka"}
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "scikit-image>=0.20.0",
+    "scipy>=1.10.0",
+    "pandas>=2.0.0",
+    "pyside6>=6.4.0",
+    "tifffile>=2023.0",
+    "cvxpy>=1.3.0",
+]
+keywords = ["x-ray", "imaging", "cli", "spatial-harmonics", "analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Homepage = "https://github.com/JLBeltran-IMAG/shi"
+Repository = "https://github.com/JLBeltran-IMAG/shi.git"
+Issues = "https://github.com/JLBeltran-IMAG/shi/issues"
+
+[project.scripts]
+shi = "src.shi_core.cli:main"
+morphos = "src.post_shi.morphostructural:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "flake8>=4.0.0",
+    "mypy>=1.0.0",
+]
+docs = [
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+packages = ["src", "src.post_shi", "src.shi_core"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+shi = [
+    "icons/*",
+    "docs/*",
+]
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3

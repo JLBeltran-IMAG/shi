@@ -1,5 +1,5 @@
 import numpy as np
-import spatial_harmonics as spatial_harmonic
+from . import spatial_harmonics as spatial_harmonic
 
 
 def next_two_power_for_dimension_padding(image: np.ndarray) -> int:

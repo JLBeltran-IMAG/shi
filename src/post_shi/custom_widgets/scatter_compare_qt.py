@@ -70,14 +70,14 @@ class ScatterCompareQt(QMainWindow):
         self.axis_y = QValueAxis()
         self.axis_x.setTitleText("Container A (intensidad)")
         self.axis_y.setTitleText("Container B (intensidad)")
-        self.chart.addAxis(self.axis_x, Qt.AlignBottom)
-        self.chart.addAxis(self.axis_y, Qt.AlignLeft)
+        self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
 
         # Rango inicial a partir de percentiles de ambas imágenes
         self._init_fixed_limits()
 
         self.view = QChartView(self.chart)
-        self.view.setRubberBand(QChartView.RectangleRubberBand)  # zoom con recuadro
+        self.view.setRubberBand(QChartView.RubberBand.RectangleRubberBand)  # zoom con recuadro
         self.view.setRenderHint(self.view.renderHints())  # usar hints por defecto
         self.view.setMinimumSize(700, 500)                # tamaño F I J O inicial
         self.view.setMaximumHeight(2000)                  # deja al usuario redimensionar si quiere
@@ -91,7 +91,7 @@ class ScatterCompareQt(QMainWindow):
         act_reset.triggered.connect(self._reset_view)
         tb.addAction(act_save)
         tb.addAction(act_reset)
-        self.addToolBar(Qt.TopToolBarArea, tb)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, tb)
 
         # series por id
         self._series_by_id: Dict[str, QScatterSeries] = {}
@@ -109,7 +109,7 @@ class ScatterCompareQt(QMainWindow):
             # Verificar si OpenGL está disponible
             from PySide6.QtGui import QSurfaceFormat
             fmt = QSurfaceFormat()
-            fmt.setRenderableType(QSurfaceFormat.OpenGL)
+            fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
             fmt.setVersion(2, 1)  # OpenGL 2.1 es suficiente para QCharts
             QSurfaceFormat.setDefaultFormat(fmt)
             
@@ -233,7 +233,7 @@ class ScatterCompareQt(QMainWindow):
             col = QColor(an_a.color)
             col.setAlphaF(0.5)
             s.setColor(col)            # relleno
-            s.setBorderColor(Qt.transparent)
+            s.setBorderColor(Qt.GlobalColor.transparent)
             # enganchar a ejes y añadir al chart
             self.chart.addSeries(s)
             s.attachAxis(self.axis_x)
@@ -248,7 +248,7 @@ class ScatterCompareQt(QMainWindow):
             # actualizar nombre/color si cambiaron
             s.setName(an_a.text if an_a.text else f"ann_{sid[:4]}")
             col = QColor(an_a.color); col.setAlphaF(0.5)
-            s.setColor(col); s.setBorderColor(Qt.transparent)
+            s.setColor(col); s.setBorderColor(Qt.GlobalColor.transparent)
 
         # cargar puntos
         # QScatterSeries no tiene replace(array) en PySide, así que limpiamos y agregamos

@@ -12,13 +12,12 @@ from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToo
 
 from ..logic.annotation_item import AnnotationItem
 
+
 class _MplCanvas(FigureCanvas):
     def __init__(self):
         self.fig = Figure(figsize=(5, 4), tight_layout=True)
         self.ax = self.fig.add_subplot(111)
         super().__init__(self.fig)
-
-
 
 
 class ScatterCompareWidget(QWidget):
@@ -104,7 +103,7 @@ class ScatterCompareWidget(QWidget):
     def _gather_series(self):
         """
         Recolecta series [(X,Y,color,label), ...] para todas las anotaciones
-        con id presente en A y B.
+        con id presente en A y B. Usa los valores originales de las imágenes, sin normalización.
         """
         ids_a = {ann.id for ann in self.a.ann_mgr.items()}
         ids_b = {ann.id for ann in self.b.ann_mgr.items()}
@@ -153,17 +152,32 @@ class ScatterCompareWidget(QWidget):
             series.append((X, Y, color, label))
         return series
 
-
     def refresh_plot(self):
         series = self._gather_series()
         ax = self.canvas.ax
         ax.clear()
-        ax.set_autoscale_on(False)  # <- esto bloquea autoscale
-        
+        ax.set_autoscale_on(False)
+
+        # Determinar los límites globales de X e Y para todas las series
+        if series:
+            all_x = np.concatenate([X for X, _, _, _ in series])
+            all_y = np.concatenate([Y for _, Y, _, _ in series])
+            min_x, max_x = np.min(all_x), np.max(all_x)
+            min_y, max_y = np.min(all_y), np.max(all_y)
+            # Hacer los límites iguales para ambos ejes para consistencia visual
+            global_min = min(min_x, min_y)
+            global_max = max(max_x, max_y)
+            if global_min == global_max:
+                # Evitar rango cero
+                global_min -= 1
+                global_max += 1
+            ax.set_xlim(global_min, global_max)
+            ax.set_ylim(global_min, global_max)
+
         if not series:
-            ax.set_title("No hay pares de anotaciones coincidentes")
-            ax.set_xlabel("Container A (intensidad)")
-            ax.set_ylabel("Container B (intensidad)")
+            ax.set_title("Morphostructural analysis: There are no matching pairs")
+            ax.set_xlabel("absorption")
+            ax.set_ylabel("scattering")
             self.canvas.draw_idle()
             return
 
@@ -171,13 +185,11 @@ class ScatterCompareWidget(QWidget):
             ax.scatter(X, Y, s=5, alpha=0.5, c=color, label=label)
 
         ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel("Container A (intensidad)")
-        ax.set_ylabel("Container B (intensidad)")
-        ax.set_title("Comparación por píxel")
-        ax.legend(loc="best", fontsize="small")
+        ax.set_xlabel("absorption")
+        ax.set_ylabel("scattering")
+        ax.set_title("Morphostructural analysis")
+        ax.legend(loc="best", fontsize="large")
         self.canvas.draw_idle()
-
-
 
     def _set_initial_limits(self):
         # Rango robusto (p1..p99) de ambas imágenes

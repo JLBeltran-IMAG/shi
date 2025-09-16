@@ -4,9 +4,9 @@ from typing import Optional, List, Union
 import numpy as np
 import skimage.io as io
 
-from shi_core.config import config
-from shi_core.exceptions import ImageNotFoundError, ProcessingError
-from shi_core.logging import logger
+from src.shi_core.config import config
+from src.shi_core.exceptions import ImageNotFoundError, ProcessingError
+from src.shi_core.logging import logger
 
 import src.spatial_harmonics as spatial_harmonics
 import src.directories as directories

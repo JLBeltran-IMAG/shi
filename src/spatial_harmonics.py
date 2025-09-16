@@ -592,42 +592,61 @@ def execute_SHI(path_to_images, path_to_result, mask_period, unwrap, flat):
 
     Parameters
     ----------
-    path_to_images : list of str
-        A list of paths to the images for analysis.
+    path_to_images : list of str or str
+        A list of paths to the images for analysis or a directory path.
     path_to_result : str
         The path to the directory where the results will be exported.
     mask_period : int
         The period of the mask used in the analysis.
 
     """
-    for path in path_to_images:
-        img = imread(path).astype(np.float32)
+    # Convert to Path objects if they're not already
+    if isinstance(path_to_images, (str, Path)):
+        path_to_images = Path(path_to_images)
+    if isinstance(path_to_result, (str, Path)):
+        path_to_result = Path(path_to_result)
+    
+    # If path_to_images is a directory, get all .tif files
+    if isinstance(path_to_images, Path) and path_to_images.is_dir():
+        image_paths = list(path_to_images.glob("*.tif"))
+    elif isinstance(path_to_images, list):
+        # If it's a list of paths already
+        image_paths = path_to_images
+    else:
+        return
+    
+    for path in image_paths:
+        try:
+            img = imread(path).astype(np.float32)
 
-        wavevector_kx, wavevector_ky, fft_img = squared_fast_fourier_transform_linear_and_logarithmic(
-            img, mask_period
-        )
-        harmonics, labels = spatial_harmonics_of_fourier_spectrum(
-            fft_img, wavevector_ky, wavevector_kx, flat
-        )
-
-        main_harmonic = harmonics[0]
-
-        absorption = contrast_retrieval_individual_members(main_harmonic, type_of_contrast="absorption")
-        directories.export_result_to(absorption, path.stem, path_to_result, "absorption")
-
-        differential_phase_horizontal = differential_phase_contrast(absorption, label="horizontal")
-        differential_phase_vertical = differential_phase_contrast(absorption, label="vertical")
-
-        directories.export_result_to(differential_phase_horizontal, path.stem + "_" + "horizontal", path_to_result, "phase")
-        directories.export_result_to(differential_phase_vertical, path.stem + "_" + "vertical", path_to_result, "phase")
-
-        for idx in range(1, len(labels)):
-            scattering = contrast_retrieval_individual_members(
-                harmonics[idx], type_of_contrast="scattering", main_harmonic=main_harmonic
+            wavevector_kx, wavevector_ky, fft_img = squared_fast_fourier_transform_linear_and_logarithmic(
+                img, mask_period
             )
-            directories.export_result_to(scattering, path.stem + "_" + labels[idx], path_to_result, "scattering")
-
-            phasemap = contrast_retrieval_individual_members(
-                harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, unwrap=unwrap
+            harmonics, labels = spatial_harmonics_of_fourier_spectrum(
+                fft_img, wavevector_ky, wavevector_kx, flat
             )
-            directories.export_result_to(phasemap, path.stem + "_" + labels[idx], path_to_result, "phasemap")
+
+            main_harmonic = harmonics[0]
+
+            absorption = contrast_retrieval_individual_members(main_harmonic, type_of_contrast="absorption")
+            directories.export_result_to(absorption, path.stem, path_to_result, "absorption")
+
+            differential_phase_horizontal = differential_phase_contrast(absorption, label="horizontal")
+            differential_phase_vertical = differential_phase_contrast(absorption, label="vertical")
+
+            directories.export_result_to(differential_phase_horizontal, path.stem + "_" + "horizontal", path_to_result, "phase")
+            directories.export_result_to(differential_phase_vertical, path.stem + "_" + "vertical", path_to_result, "phase")
+
+            for idx in range(1, len(labels)):
+                scattering = contrast_retrieval_individual_members(
+                    harmonics[idx], type_of_contrast="scattering", main_harmonic=main_harmonic
+                )
+                directories.export_result_to(scattering, path.stem + "_" + labels[idx], path_to_result, "scattering")
+
+                phasemap = contrast_retrieval_individual_members(
+                    harmonics[idx], type_of_contrast="phasemap", main_harmonic=main_harmonic, unwrap=unwrap
+                )
+                directories.export_result_to(phasemap, path.stem + "_" + labels[idx], path_to_result, "phasemap")
+        except Exception as e:
+            # Keep this print as it's an error message
+            print(f"Error processing {path}: {e}")

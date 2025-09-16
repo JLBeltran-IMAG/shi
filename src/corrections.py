@@ -14,9 +14,14 @@ def crop_without_corrections(
     allow_crop: bool = False,
     angle: np.float32 = np.float32(0.0)
 ) -> None:
-
-    images = list(Path(path_to_images).glob("*.tif"))
-    path_to_cropped_images = Path(path_to_images).joinpath("crop_without_correction")
+    # Convert string to Path if needed
+    path_to_images = Path(path_to_images)
+    
+    # Find all .tif files in the directory
+    images = list(path_to_images.glob("*.tif"))
+    
+    # Create the output directory
+    path_to_cropped_images = path_to_images / "crop_without_correction"
 
     if not path_to_cropped_images.exists():
         path_to_cropped_images.mkdir()
@@ -63,8 +68,15 @@ def correct_darkfield(
         A boolean indicating whether to allow cropping, by default False.
 
     """
-    images = list(Path(path_to_images).glob("*.tif"))
-    path_to_corrected_images = Path(path_to_images).joinpath("corrected_images")
+    # Convert string to Path if needed
+    path_to_images = Path(path_to_images)
+    path_to_dark = Path(path_to_dark)
+    
+    # Find all .tif files in the directory
+    images = list(path_to_images.glob("*.tif"))
+    
+    # Create the output directory
+    path_to_corrected_images = path_to_images / "corrected_images"
 
     if not path_to_corrected_images.exists():
         path_to_corrected_images.mkdir()

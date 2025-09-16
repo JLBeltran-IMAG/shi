@@ -156,8 +156,7 @@ class ROISelector(tk.Tk):
 
     def set_roi(self):
         y0, y1, x0, x1 = self.roi_coords
-        print(f"ROI Coordinates: y0={y0}, y1={y1}, x0={x0}, x1={x1}")
-        # Here you can add functionality to save or use the ROI coordinates as needed
+        # ROI coordinates saved in self.roi_coords - no need to print
 
 
     def open_adjust_window(self):

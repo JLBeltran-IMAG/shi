@@ -66,7 +66,6 @@ def correcting_stripes(folder=None):
 
         # Verificar si el usuario canceló la selección
         if not folder:
-            print("No se seleccionó ninguna carpeta. Saliendo...")
             return
 
         app.quit()
@@ -91,9 +90,9 @@ def correcting_stripes(folder=None):
                 
                 # Sobrescribir el archivo original con la imagen corregida
                 tifffile.imwrite(file_path, image_clean, imagej=True)
-                print(f"Procesado: {file_path}")
 
             except Exception as e:
+                # Keep error message for debugging
                 print(f"Error procesando {file_path}: {e}")
 
 

@@ -3,32 +3,30 @@ import argparse
 import sys
 from pathlib import Path
 
-try:
-    # Try relative imports first (when installed as package)
-    from .config import config
-    from .processor import SHIProcessor
-    from .cleaner import Cleaner
-    from .logging import logger
-    from .exceptions import SHIError
-except ImportError:
-    # Fall back to absolute imports (when running as script)
-    from src.shi_core.config import config
-    from src.shi_core.processor import SHIProcessor
-    from src.shi_core.cleaner import Cleaner
-    from src.shi_core.logging import logger
-    from src.shi_core.exceptions import SHIError
+from src.shi_core.config import config
+from src.shi_core.processor import SHIProcessor
+from src.shi_core.cleaner import Cleaner
+from src.shi_core.logging import logger
+from src.shi_core.exceptions import SHIError
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     main_parser = argparse.ArgumentParser(
         prog="SHI",
-        description="Automated implementation of Spatial Harmonic Imaging, "
-                   "a modality of Multicontrast X-ray Imaging"
+        description=
+            """
+            Command line interface for Spatial Harmonic Imaging,
+            Spatial Harmonic Imaging is a modality of Multicontrast X-ray Imaging,
+            Spatial Harmonic Imaging is also known as Mesh-based X-ray Imaging.
+            """
     )
     
     subparsers = main_parser.add_subparsers(dest="command", required=True)
-    
+
+    # ---------------------
     # Calculate subcommand
+    # ---------------------
     parser_shi = subparsers.add_parser(
         "calculate",
         help="Execute the SHI method."
@@ -37,8 +35,12 @@ def create_parser() -> argparse.ArgumentParser:
         "-m", "--mask_period",
         required=True,
         type=int,
-        help="Number of projected pixels in the mask."
+        help="Number of projected pixels of the mask-grid."
     )
+
+    # These parameters are optional in automatic mode.
+    # The automatic mode processes all subdirectories in the 'sample' directory
+    # located in the current working directory.
     parser_shi.add_argument(
         "-i", "--images",
         type=str,
@@ -59,6 +61,10 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         help="Path to bright image(s)"
     )
+
+    # Options to define the mode of operation (One of then have to be set):
+    # 1- Mode --all-2d is for 2D
+    # 2- Mode --all-3d is for CT
     parser_shi.add_argument(
         "--all-2d",
         action="store_true",
@@ -69,29 +75,43 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Execute SHI-CT method in current folder without specifying inputs"
     )
+
+    # When you took several measurements in mode --all-2d
+    # you can average the results with this flag
     parser_shi.add_argument(
         "--average",
         action="store_true",
         help="Apply averaging"
     )
+
+    # Sometimes it's difficult to find all the images in a folder.
+    # For this purpose, you can use the --export flag to export the results
+    # in a separate folder called results in the output directory.
     parser_shi.add_argument(
         "--export",
         action="store_true",
         help="Export results"
     )
+
+    # Option to apply angle correction after measurements
     parser_shi.add_argument(
         "--angle-after",
         action="store_true",
         help="Apply angle correction after measurements"
     )
+
+    # Option to select phase unwrapping method
     parser_shi.add_argument(
         "--unwrap-phase",
         type=str,
         choices=list(config.UNWRAP_METHODS.keys()),
         help="Select phase unwrapping method"
     )
-    
+
+    # -----------------
     # Clean subcommand
+    # -----------------
+    # These options are missing implementations
     parser_clean = subparsers.add_parser(
         "clean",
         help="Delete temporary files"
@@ -106,21 +126,22 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Clear extra files generated after calculate"
     )
-    
+
     return main_parser
+
 
 def main() -> int:
     """Main entry point for the CLI."""
     parser = create_parser()
     args = parser.parse_args()
-    
+
     try:
         if args.command == "calculate":
             processor = SHIProcessor(
                 mask_period=args.mask_period,
                 unwrap_method=args.unwrap_phase
             )
-            
+
             if args.all_2d or args.all_3d:
                 # Handle automatic mode
                 measurement_directory = Path.cwd()
@@ -128,32 +149,94 @@ def main() -> int:
                 dark_path = measurement_directory / "dark"
                 flat_path = measurement_directory / "flat"
                 bright_path = measurement_directory / "bright"
-                
+
+                # Verify sample directory exists
+                if not images_path.exists():
+                    raise SHIError(f"Sample directory not found: {images_path}")
+
                 mode = "2d" if args.all_2d else "3d"
-                
-                processor.process_directory(
-                    images_path=images_path,
-                    dark_path=dark_path if dark_path.exists() else None,
-                    flat_path=flat_path if flat_path.exists() else None,
-                    bright_path=bright_path if bright_path.exists() else None,
-                    mode=mode,
-                    angle_after=args.angle_after,
-                    average=args.average,
-                    export=args.export
-                )
+
+                # Process all subdirectories in sample folder
+                subdirs = [d for d in images_path.iterdir() if d.is_dir()]
+                if not subdirs:
+                    raise SHIError(f"No subdirectories found in {images_path}")
+
+                for subdir in subdirs:
+                    # Process this subdirectory
+                    processor.process_directory(
+                        images_path=subdir,
+                        dark_path=dark_path if dark_path.exists() else None,
+                        flat_path=flat_path if flat_path.exists() else None,
+                        bright_path=bright_path if bright_path.exists() else None,
+                        mode=mode,
+                        angle_after=args.angle_after,
+                        average=args.average,
+                        export=args.export
+                    )
             else:
                 # Handle manual mode
-                processor.process_directory(
-                    images_path=args.images,
-                    dark_path=args.dark,
-                    flat_path=args.flat,
-                    bright_path=args.bright,
-                    mode="2d",  # default to 2d in manual mode
-                    angle_after=args.angle_after,
-                    average=args.average,
-                    export=args.export
-                )
-                
+                if not args.images:
+                    # If no images are specified, use the default path
+                    args.images = Path.cwd() / "sample"
+
+                if not Path(args.images).exists():
+                    raise SHIError(f"Images path not found: {args.images}")
+
+                # Check if path contains .tif files or is a directory
+                image_path = Path(args.images)
+                if image_path.is_file() and image_path.suffix.lower() == '.tif':
+                    # Single file
+                    processor.process_single_image(
+                        image_path=image_path,
+                        dark_path=args.dark,
+                        flat_path=args.flat,
+                        bright_path=args.bright,
+                        mode="2d",  # default to 2d in manual mode
+                        angle_after=args.angle_after,
+                        average=args.average,
+                        export=args.export
+                    )
+                elif image_path.is_dir():
+                    # Directory containing .tif files
+                    tif_files = list(image_path.glob("*.tif"))
+                    subdirs = [d for d in image_path.iterdir() if d.is_dir()]
+
+                    if tif_files:
+                        # Process .tif files directly in the directory
+                        for tif_file in tif_files:
+                            processor.process_single_image(
+                                image_path=tif_file,
+                                dark_path=args.dark,
+                                flat_path=args.flat,
+                                bright_path=args.bright,
+                                mode="2d",
+                                angle_after=args.angle_after,
+                                average=args.average,
+                                export=args.export
+                            )
+                    elif subdirs:
+                        # Process .tif files in subdirectories
+                        for subdir in subdirs:
+                            subdir_tif_files = list(subdir.glob("*.tif"))
+                            if not subdir_tif_files:
+                                logger.warning(f"No .tif files found in {subdir}")
+                                continue
+                            for tif_file in subdir_tif_files:
+                                processor.process_single_image(
+                                    image_path=tif_file,
+                                    dark_path=args.dark,
+                                    flat_path=args.flat,
+                                    bright_path=args.bright,
+                                    mode="2d",
+                                    angle_after=args.angle_after,
+                                    average=args.average,
+                                    export=args.export
+                                )
+                    else:
+                        raise SHIError(f"No .tif files or subdirectories found in {image_path}")
+                else:
+                    raise SHIError(f"Invalid image path: {args.images}")
+
         elif args.command == "clean":
             if args.cache:
                 Cleaner.clean_cache()
@@ -161,12 +244,16 @@ def main() -> int:
                 Cleaner.clean_extra(Path.cwd())
             else:
                 raise SHIError("No cleaning option specified. Use --cache or --extra.")
-        
+
         return 0
-        
+
     except Exception as e:
         logger.error(str(e))
         return 1
 
+
 if __name__ == "__main__":
     sys.exit(main())
+
+
+

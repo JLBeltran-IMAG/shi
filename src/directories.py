@@ -29,12 +29,21 @@ def create_result_directory(
         Path object representing the main directory for exporting results.
     """
     base_path = Path.home() / "Documents" / "CXI" / "CXI-DATA-ANALYSIS"
-
-    result_path = base_path / result_folder / sample_folder
+    
+    # Create the full result path
+    if result_folder and sample_folder:
+        result_path = base_path / result_folder / sample_folder
+    elif result_folder:
+        result_path = base_path / result_folder
+    else:
+        result_path = base_path
+    
+    # Create the directory and its subdirectories
     result_path.mkdir(parents=True, exist_ok=True)
 
     for subdir in ["absorption", "scattering", "phase", "phasemap"]:
-        (result_path / subdir).mkdir(parents=True, exist_ok=True)
+        subdir_path = result_path / subdir
+        subdir_path.mkdir(parents=True, exist_ok=True)
 
     return result_path
 
@@ -64,15 +73,17 @@ def create_result_subfolders(
     tuple
         A tuple containing two elements:
         - A list of Path objects representing the files read from the directory.
-        - A list of Path objects representing the main directory and subdirectories for exporting results.
+        - A Path object representing the main directory for exporting results.
     """
+    # Find all .tif files in the specified directory
     path_to_files = [x for x in Path(file_dir).glob("*.tif") if x.is_file()]
 
+    # Create result directory
     if result_folder:
         result_path = create_result_directory(result_folder, sample_folder)
     else:
         result_path = create_result_directory()
-
+    
     return path_to_files, result_path
 
 
@@ -137,8 +148,7 @@ def export_result_to(
         if filename:
             path_to_file = path_to_save_images / type_of_contrast / "{}.tif".format(filename)
             ti.imwrite(path_to_file, image_to_save.astype(np.float32), imagej = True)
-        else: print("Missing filename")
-    else: print("Please, define the right type of contrast")
+    # Remove else print statements
 
 
 def organize_dir(path_to_files: Path, type_of_contrast: str) -> None:
@@ -291,9 +301,6 @@ def averaging(
         ti.imwrite("{}/vertical_phasemap.tif".format(path_to_export), avg_vertical)
         ti.imwrite("{}/bidirectional_phasemap.tif".format(path_to_export), avg_phasemap)
 
-    else:
-        print("Write the right contrast")
-
 
 
 def average_flat_harmonics(path_to_flat: Path, type_of_contrast: str) -> Path:
@@ -378,8 +385,5 @@ def average_flat_harmonics(path_to_flat: Path, type_of_contrast: str) -> Path:
             ti.imwrite(export_dir / "absorption.tif", avg_image, imagej=True)
         else:
             raise FileNotFoundError("No absorption flat field files found.")
-
-    else:
-        print("Unsupported type of contrast provided.")
 
     return export_dir

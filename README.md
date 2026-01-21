@@ -2,7 +2,7 @@
 
 # SHI: A CLI-software for Spatial Harmonic X-ray Imaging
 
-**SHI: Spatial Harmonic Imaging** is a user-friendly software designed to facilitate Spatial Harmonic Imaging (SHI), a multi-contrast X-ray imaging modality. It produces high-resolution images in absorption, scattering, and differential phase modes within seconds per image. The software is intended for users who are new to the technique, including students and companies seeking effective data analysis tools.
+**SHI: Spatial Harmonic Imaging** is a user-friendly software designed to facilitate Spatial Harmonic Imaging (SHI), a multi-contrast X-ray imaging modality. It produces high-resolution images in absorption, scattering, and differential phase modes very fast. The software is intended for users who are new to the technique, including students and companies seeking effective data analysis tools.
 
 ---
 
@@ -28,7 +28,7 @@
 
 ## System Requirements
 
-- **Operating System:** Linux (Ubuntu, CentOS, etc.)
+- **Operating System:** Linux (Ubuntu, Linux Mint, Debian)
 - **Hardware Requirements:**
   - **Processor:** At least 2 GHz
   - **RAM:** Minimum 4 GB (8 GB or higher recommended for optimal performance)
@@ -84,7 +84,7 @@ To create an appropriate environment for Python and the necessary scientific lib
 
 ### Installing ImageJ
 
-ImageJ is a widely used image processing software that complements SHI functionalities.
+**ImageJ** is a widely used image processing software that complements the functionalities of SHI. Although ImageJ is an optional requirement, it is useful for visualizing the final results.
 
 1. ```bash
    sudo apt install imagej
@@ -124,16 +124,19 @@ To see all available options for SHI processing:
 ```
 
 Basic usage with automatic mode (2D):
+
 ```bash
 ./shi.py calculate -m MASK_PERIOD --all-2d
 ```
 
 Basic usage with automatic mode (3D):
+
 ```bash
 ./shi.py calculate -m MASK_PERIOD --all-3d
 ```
 
 To clean up temporary files:
+
 ```bash
 ./shi.py clean --extra
 ```
@@ -143,27 +146,34 @@ To clean up temporary files:
 The morphostructural analysis tool provides two main commands:
 
 1. `analyze`: Run the morphostructural analysis
-```bash
-./morphos.py analyze --left path/to/absorption.tif --right path/to/scattering.tif --contrast linear
-```
+   
+   ```bash
+   ./morphos.py analyze --left path/to/absorption.tif --right path/to/scattering.tif --contrast linear
+   ```
 
 Arguments for analyze:
-- `--left`: Path to the absorption image
-- `--right`: Path to the scattering/phase image
-- `--contrast`: Contrast type (linear or log)
 
+- `--left`: Path to the absorption image
+
+- `--right`: Path to the scattering/phase image
+
+- `--contrast`: Contrast type (linear or log)
 2. `clean`: Clean temporary and annotation files
-```bash
-# Clean temporary files
-./morphos.py clean --temp
+   
+   ```bash
+   # Clean temporary files
+   ./morphos.py clean --temp
+   ```
 
 # Clean annotation files
+
 ./morphos.py clean --annotations
 
 # Clean both
-./morphos.py clean --temp --annotations
-```
 
+./morphos.py clean --temp --annotations
+
+```
 Arguments for clean:
 - `--temp`: Clean temporary files from analysis
 - `--annotations`: Clean saved annotation files
@@ -206,7 +216,7 @@ To correct detector stripes that might introduce false features in the final ima
 1. Run:
    ```bash
    ./shi.py preprocessing --stripes
-   ```
+```
 
 2. Select the folder containing all raw experimental data (input images, dark images, and flat images).
 

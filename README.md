@@ -38,11 +38,7 @@ To create an appropriate environment for Python and the necessary scientific lib
      
      *Replace `Anaconda3-xxxx.xx-Linux-x86_64.sh` with the actual filename.*
 
-3. **Follow the Installation Instructions:**
-   
-   - Accept the terms and conditions and choose an appropriate installation location (typically `/home/your_username/anaconda3`).
-
-4. **Set Up the Environment:**
+3. **Set Up the Environment:**
    
    - After installation, update your `PATH` by adding the following line at the end of your `.bashrc` file:
      
@@ -52,7 +48,7 @@ To create an appropriate environment for Python and the necessary scientific lib
      
      *Replace `/home/your_username/anaconda3` with your actual installation path.*
 
-5. **Verify Installation:**
+4. **Verify Installation:**
    
    - Close and reopen the terminal, then run:
      

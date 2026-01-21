@@ -65,8 +65,9 @@ packages = [
     "src",
     "src.post_shi",
     "src.post_shi.custom_widgets",
-    "src.post_shi.logic",
     "src.post_shi.data",
+    "src.post_shi.graph",
+    "src.post_shi.logic",
     "src.post_shi.utils",
     "src.shi_core"
 ]

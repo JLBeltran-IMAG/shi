@@ -67,10 +67,10 @@ docs = [
 ]
 
 [tool.setuptools]
-package-dir = {"" = "."}
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 
 include-package-data = true
 

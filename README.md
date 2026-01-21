@@ -6,26 +6,6 @@
 
 ---
 
-## Table of Contents
-
-- [System Requirements](#system-requirements)
-- [Installation](#installation)
-  - [Installing Anaconda](#installing-anaconda)
-  - [Installing ImageJ](#installing-imagej)
-- [Using the Software](#using-the-software)
-  - [Running from USB](#running-from-usb)
-  - [Testing Examples](#testing-examples)
-  - [Running Real Experiments](#running-real-experiments)
-- [Advanced Features](#advanced-features)
-  - [Averaging Tool](#averaging-tool)
-  - [Scattering and Absorption Analysis Tool](#scattering-and-absorption-analysis-tool)
-  - [Line Profile Plot Tool](#line-profile-plot-tool)
-  - [Detector Stripes Correction Tool](#detector-stripes-correction-tool)
-- [Support and Additional Resources](#support-and-additional-resources)
-- [Contact Information](#contact-information)
-
----
-
 ## System Requirements
 
 - **Operating System:** Linux (Ubuntu, Linux Mint, Debian)
@@ -98,47 +78,43 @@ To create an appropriate environment for Python and the necessary scientific lib
 
 ### Installing SHI
 
-The SHI: Spatial Harmonic Imaging software can be provided on a USB stick. You can run it directly from the USB stick without formal installation or copy the `shi` folder to any directory on your computer.
-
-For installing the software, run on your terminal
+Download the ZIP file, extract its contents, and run the application from the terminal:
 
 ```bash
-./install.sh
+pip install .
 ```
-
-If you are using a USB stick, don't remove the usb-device while running the software 
 
 ## Running SHI
 
 The software provides two main command-line tools:
 
-1. `shi.py` - Main tool for SHI processing
-2. `morphos.py` - Tool for morphostructural analysis
+1. `shi` - Main tool for SHI processing
+2. `morphos` - Tool for morphostructural analysis
 
 ### SHI Processing
 
 To see all available options for SHI processing:
 
 ```bash
-./shi.py calculate --help
+shi calculate --help
 ```
 
 Basic usage with automatic mode (2D):
 
 ```bash
-./shi.py calculate -m MASK_PERIOD --all-2d
+shi calculate -m MASK_PERIOD --all-2d
 ```
 
 Basic usage with automatic mode (3D):
 
 ```bash
-./shi.py calculate -m MASK_PERIOD --all-3d
+shi calculate -m MASK_PERIOD --all-3d
 ```
 
 To clean up temporary files:
 
 ```bash
-./shi.py clean --extra
+shi clean --extra
 ```
 
 ### Morphostructural Analysis
@@ -148,7 +124,7 @@ The morphostructural analysis tool provides two main commands:
 1. `analyze`: Run the morphostructural analysis
    
    ```bash
-   ./morphos.py analyze --left path/to/absorption.tif --right path/to/scattering.tif --contrast linear
+   morphos analyze --left path/to/absorption.tif --right path/to/scattering.tif --contrast linear
    ```
 
 Arguments for analyze:
@@ -162,75 +138,8 @@ Arguments for analyze:
    
    ```bash
    # Clean temporary files
-   ./morphos.py clean --temp
+   morphos clean --temp
    ```
-
-# Clean annotation files
-
-./morphos.py clean --annotations
-
-# Clean both
-
-./morphos.py clean --temp --annotations
-
-```
-Arguments for clean:
-- `--temp`: Clean temporary files from analysis
-- `--annotations`: Clean saved annotation files
-
-### Running Real Experiments
-
-For real experiments, configure the input directory as follow:
-
-![Descripción de la imagen](docs/acq_scheme.png)
-
-If the folder where you saved your experimental data has no the same structure above, the software will stop with error.
-
-**Example configuration file (`experiment_config.txt`):**
-
-The results will be saved in `Documents/CXI/CXI-DATA-ANALYSIS/foldername`.
-
----
-
-## Advanced Features
-
-The SHI software includes additional tools for advanced data processing, each implemented as separate scripts:
-
-### Morphostructural Analysis
-
-The morphostructural analysis tool (`morphos.py`) provides interactive visualization and analysis of absorption and scattering data:
-
-- Synchronized image viewing
-- ROI selection and analysis
-- Statistical analysis of selected regions
-- Correlation plots between absorption and scattering
-
-### Line Profile Plot Tool
-
-Available through the morphostructural analysis interface, allows for detailed analysis of intensity profiles across your images.
-
-### Detector Stripes Correction Tool
-
-To correct detector stripes that might introduce false features in the final images:
-
-1. Run:
-   ```bash
-   ./shi.py preprocessing --stripes
-```
-
-2. Select the folder containing all raw experimental data (input images, dark images, and flat images).
-
-3. A subfolder named `no stripe` will be created in each subfolder of the selected directory.
-
----
-
-## Support and Additional Resources
-
-- **Documentation:** Please refer to the complete documentation for detailed instructions on software configuration and usage.
-- **Online Resources:** Visit forums and specialized websites for additional information on SHI and image processing techniques.
-- **Updates:** Stay informed about new versions or improvements to the software.
-
----
 
 ## Contact Information
 
@@ -239,5 +148,3 @@ For additional support, to report issues, or to provide suggestions, please cont
 - **Author:** Jorge Luis Beltran Diaz and Danays Kunka
 
 ---
-
-This README provides a summary of the key aspects of the user manual for CXI: Spatial Harmonic Imaging. For detailed instructions on each section, please refer to the complete documentation provided in the LaTeX file.

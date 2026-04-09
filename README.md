@@ -27,11 +27,14 @@ cd shi
 ```bash
 uv venv  
 uv sync
+source .venev/bin/activate
 ```
 
 ### Alternative (pip)
 
 ```bash
+python3 -m venv .venv
+source .venev/bin/activate
 pip install .
 ```
 

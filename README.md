@@ -109,14 +109,14 @@ morphos clean --temp
 The authors kindly request that, if you use **SHI** in your research or work, you cite the following publication:
 
 @article{Diaz2026,
- author = {Diaz, Jorge Luis Beltran and Korvink, Jan G. and Kunka, Danays},
- title = {SHI: a framework for spatial harmonic imaging},
- journal = {Scientific Reports},
- year = {2026},
- volume = {16},
- number = {1},
- pages = {4338},
- doi = {10.1038/s41598-026-37029-5},
- url = {https://doi.org/10.1038/s41598-026-37029-5},
- issn = {2045-2322}
+  author = {Diaz, Jorge Luis Beltran and Korvink, Jan G. and Kunka, Danays},
+  title = {SHI: a framework for spatial harmonic imaging},
+  journal = {Scientific Reports},
+  year = {2026},
+  volume = {16},
+  number = {1},
+  pages = {4338},
+  doi = {10.1038/s41598-026-37029-5},
+  url = {https://doi.org/10.1038/s41598-026-37029-5},
+  issn = {2045-2322}
 }

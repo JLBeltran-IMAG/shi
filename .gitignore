@@ -45,3 +45,6 @@ env/
 .DS_Store
 .directory
 Thumbs.db
+
+# Files from processing until updates from the refactor are complete
+*.pkl

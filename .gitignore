@@ -37,8 +37,6 @@ env/
 *.ipynb
 
 # Project specific
-/backup_before_refactor/
-/tmp/
 /cache/
 
 # OS specific
